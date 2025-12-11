@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Cocina (Diseño Estático)</title>
+    <!-- Carga de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Configuración de Tailwind para colores y animaciones
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#facc15', // Amber-400 (Accent for actions)
+                        'background': '#1f2937', // Gray-800 (Dark background for contrast)
+                        'card-bg': '#374151', // Gray-700
+                        'column-received': '#ef4444', // Red-500 (Urgent)
+                        'column-cooking': '#f97316', // Orange-600 (In Progress)
+                        'column-ready': '#22c55e', // Green-500 (Ready to serve)
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    // Definiendo la animación de pulso
+                    keyframes: {
+                        'pulse-urgent': {
+                            '0%, 100%': { opacity: '1' },
+                            '50%': { opacity: '0.6' },
+                        }
+                    },
+                    animation: {
+                        'pulse-urgent': 'pulse-urgent 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Estilos optimizados para la vista de cocina (alto contraste) */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: theme('colors.background');
+            color: white;
+            min-height: 100vh;
+        }
+        .kanban-column {
+            min-width: 320px;
+            max-width: 400px;
+            height: calc(100vh - 80px);
+            overflow-y: auto;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            background-color: theme('colors.card-bg');
+            flex-shrink: 0; /* Asegura que no se encoja */
+        }
+        .order-card {
+            transition: all 0.2s ease-in-out;
+        }
+        .order-card:hover {
+            box-shadow: 0 0 20px rgba(250, 204, 21, 0.2);
+            transform: translateY(-2px);
+        }
+        /* Aplica la animación de pulso a los elementos que tengan esta clase */
+        .urgent-pulse {
+            animation: pulse-urgent 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        /* Scrollbar para columnas oscuras */
+        .kanban-column::-webkit-scrollbar {
+            width: 8px;
+        }
+        .kanban-column::-webkit-scrollbar-thumb {
+            background: #4b5563; /* Gray-600 */
+            border-radius: 10px;
+        }
+        .kanban-column::-webkit-scrollbar-track {
+            background: #1f2937; /* Gray-800 */
+        }
+        
+        /* Estilo para los encabezados pegajosos con color de estado */
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            padding-top: 0.75rem;
+            padding-bottom: 0.75rem;
+            margin-left: -1rem;
+            margin-right: -1rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+            border-radius: 0.75rem 0.75rem 0 0;
+        }
+    </style>
+</head>
+<body class="bg-background font-sans">
+
+    <!-- Encabezado (Diseño Preservado) -->
+    <header class="bg-gray-900 shadow-xl p-3 flex justify-between items-center sticky top-0 z-20">
+        <h1 class="text-3xl font-bold text-primary">COCINA: Flujo de Órdenes</h1>
+        <p class="text-sm text-gray-400 truncate">ID de Usuario: Diseño Estático</p>
+    </header>
+
+    <!-- Contenedor del Tablero Kanban de Cocina -->
+    <main class="p-4 flex space-x-4 overflow-x-auto h-full">
+
+        <!-- Columna: Recibida (PENDIENTE) -->
+        <div class="kanban-column">
+            <h2 class="text-2xl font-extrabold text-white mb-4 sticky-header bg-column-received shadow-xl flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 urgent-pulse" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.487 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM10 13a1 1 0 100-2 1 1 0 000 2zm-1-8a1 1 0 112 0v2a1 1 0 11-2 0V5z" clip-rule="evenodd" />
+                </svg>
+                1. PENDIENTE (Recibida)
+            </h2>
+            <div id="column-Recibida" class="space-y-4 pt-4">
+                
+                <!-- Tarjeta de Ejemplo (Recibida) -->
+                <div class="order-card p-4 mb-4 rounded-xl shadow-xl border-t-[10px] bg-column-received bg-card-bg">
+                    <!-- Encabezado de la Orden -->
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-3xl font-extrabold text-white">405</span>
+                        <div class="text-right">
+                            <span class="text-sm font-semibold text-gray-300 block">Mesa</span>
+                            <span class="text-xs font-medium text-primary block">Mesa A3</span>
+                        </div>
+                    </div>
+                    <!-- Lista de Ítems -->
+                    <div class="bg-gray-800 p-3 rounded-lg mb-4 shadow-inner">
+                        <ul class="text-gray-200 space-y-1">
+                            <li class="flex justify-between py-1 border-b border-gray-600 last:border-b-0">
+                                <span class="text-xl font-bold text-primary mr-2">2x</span>
+                                <span class="text-lg font-medium flex-grow">Hamburguesa Clásica</span>
+                            </li>
+                            <li class="flex justify-between py-1 border-b border-gray-600 last:border-b-0">
+                                <span class="text-xl font-bold text-primary mr-2">1x</span>
+                                <span class="text-lg font-medium flex-grow">Papas Fritas</span>
+                                <span class="text-xs font-semibold text-red-400 p-1 ml-2 rounded-md border border-red-400">NOTA: Sin sal</span>
+                            </li>
+                            <li class="flex justify-between py-1 border-b border-gray-600 last:border-b-0">
+                                <span class="text-xl font-bold text-primary mr-2">1x</span>
+                                <span class="text-lg font-medium flex-grow">Agua Mineral</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <!-- Tiempo y Botón de Acción -->
+                    <div class="flex flex-col space-y-3">
+                        <div class="text-2xl font-extrabold text-center text-red-400 urgent-pulse">
+                            Tiempo: 5m 45s
+                        </div>
+                        <button class="w-full text-lg font-bold text-gray-900 py-3 rounded-lg transition duration-150 shadow-md bg-column-cooking hover:opacity-90">
+                            Comenzar Preparación
+                        </button>
+                    </div>
+                </div>
+
+                 <!-- Tarjeta de Ejemplo 2 (Recibida) -->
+                <div class="order-card p-4 mb-4 rounded-xl shadow-xl border-t-[10px] bg-column-received bg-card-bg">
+                    <!-- Encabezado de la Orden -->
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-3xl font-extrabold text-white">406</span>
+                        <div class="text-right">
+                            <span class="text-sm font-semibold text-gray-300 block">Mesa</span>
+                            <span class="text-xs font-medium text-primary block">Mesa F2</span>
+                        </div>
+                    </div>
+                    <!-- Lista de Ítems -->
+                    <div class="bg-gray-800 p-3 rounded-lg mb-4 shadow-inner">
+                        <ul class="text-gray-200 space-y-1">
+                            <li class="flex justify-between py-1 border-b border-gray-600 last:border-b-0">
+                                <span class="text-xl font-bold text-primary mr-2">4x</span>
+                                <span class="text-lg font-medium flex-grow">Café Americano</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <!-- Tiempo y Botón de Acción -->
+                    <div class="flex flex-col space-y-3">
+                        <div class="text-2xl font-extrabold text-center text-red-400 urgent-pulse">
+                            Tiempo: 1m 02s
+                        </div>
+                        <button class="w-full text-lg font-bold text-gray-900 py-3 rounded-lg transition duration-150 shadow-md bg-column-cooking hover:opacity-90">
+                            Comenzar Preparación
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Columna: En Cocina (EN PREPARACIÓN) -->
+        <div class="kanban-column">
+            <h2 class="text-2xl font-extrabold text-white mb-4 sticky-header bg-column-cooking shadow-xl flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
+                </svg>
+                2. EN PREPARACIÓN
+            </h2>
+            <div id="column-EnCocina" class="space-y-4 pt-4">
+                
+                <!-- Tarjeta de Ejemplo (En Cocina) -->
+                <div class="order-card p-4 mb-4 rounded-xl shadow-xl border-t-[10px] bg-column-cooking bg-card-bg">
+                    <!-- Encabezado de la Orden -->
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-3xl font-extrabold text-white">404</span>
+                        <div class="text-right">
+                            <span class="text-sm font-semibold text-gray-300 block">Delivery</span>
+                            <span class="text-xs font-medium text-primary block">A Domicilio</span>
+                        </div>
+                    </div>
+                    <!-- Lista de Ítems -->
+                    <div class="bg-gray-800 p-3 rounded-lg mb-4 shadow-inner">
+                        <ul class="text-gray-200 space-y-1">
+                            <li class="flex justify-between py-1 border-b border-gray-600 last:border-b-0">
+                                <span class="text-xl font-bold text-primary mr-2">1x</span>
+                                <span class="text-lg font-medium flex-grow">Ensalada César</span>
+                                <span class="text-xs font-semibold text-red-400 p-1 ml-2 rounded-md border border-red-400">NOTA: Aderezo aparte</span>
+                            </li>
+                            <li class="flex justify-between py-1 border-b border-gray-600 last:border-b-0">
+                                <span class="text-xl font-bold text-primary mr-2">1x</span>
+                                <span class="text-lg font-medium flex-grow">Sopa del Día</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <!-- Tiempo y Botón de Acción -->
+                    <div class="flex flex-col space-y-3">
+                        <div class="text-2xl font-extrabold text-center text-yellow-400">
+                            Tiempo: 12m 30s
+                        </div>
+                        <button class="w-full text-lg font-bold text-gray-900 py-3 rounded-lg transition duration-150 shadow-md bg-column-ready hover:opacity-90">
+                            Marcar como LISTO
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Columna: Lista (LISTO PARA SERVIR) -->
+        <div class="kanban-column">
+            <h2 class="text-2xl font-extrabold text-white mb-4 sticky-header bg-column-ready shadow-xl flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                3. LISTO PARA SERVIR
+            </h2>
+            <div id="column-Lista" class="space-y-4 pt-4">
+                
+                <!-- Tarjeta de Ejemplo (Lista) -->
+                <div class="order-card p-4 mb-4 rounded-xl shadow-xl border-t-[10px] bg-column-ready bg-card-bg">
+                    <!-- Encabezado de la Orden -->
+                    <div class="flex justify-between items-start mb-3">
+                        <span class="text-3xl font-extrabold text-white">403</span>
+                        <div class="text-right">
+                            <span class="text-sm font-semibold text-gray-300 block">Mesa</span>
+                            <span class="text-xs font-medium text-primary block">Mesa B10</span>
+                        </div>
+                    </div>
+                    <!-- Lista de Ítems -->
+                    <div class="bg-gray-800 p-3 rounded-lg mb-4 shadow-inner">
+                        <ul class="text-gray-200 space-y-1">
+                            <li class="flex justify-between py-1 border-b border-gray-600 last:border-b-0">
+                                <span class="text-xl font-bold text-primary mr-2">3x</span>
+                                <span class="text-lg font-medium flex-grow">Café Espresso</span>
+                            </li>
+                            <li class="flex justify-between py-1 border-b border-gray-600 last:border-b-0">
+                                <span class="text-xl font-bold text-primary mr-2">1x</span>
+                                <span class="text-lg font-medium flex-grow">Tarta de Manzana</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <!-- Tiempo y Botón de Acción (Inactivo) -->
+                    <div class="flex flex-col space-y-3">
+                        <div class="text-2xl font-extrabold text-center text-yellow-400">
+                            Tiempo: 2m 15s (Listo)
+                        </div>
+                        <span class="block w-full text-center text-lg font-bold bg-column-ready/80 text-gray-900 py-3 rounded-lg flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            Esperando Recogida
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

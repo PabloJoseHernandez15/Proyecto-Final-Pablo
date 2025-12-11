@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Pedidos Kanban (Estático)</title>
+    <!-- Carga de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#059669', // Emerald-600 (Main Accent)
+                        'secondary': '#10b981', // Emerald-500
+                        'column-received': '#fcd34d', // Amber-300
+                        'column-cooking': '#f97316', // Orange-500
+                        'column-ready': '#3b82f6', // Blue-500
+                        'column-delivered': '#10b981', // Emerald-500
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Estilos personalizados para el panel Kanban */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .kanban-column {
+            min-width: 280px;
+            max-width: 350px;
+            height: calc(100vh - 120px); /* Altura de la vista menos encabezado/margen */
+            overflow-y: auto;
+            border-radius: 0.75rem; /* rounded-xl */
+            padding: 1rem;
+        }
+        .order-card {
+            transition: all 0.2s ease-in-out;
+        }
+        .order-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transform: translateY(-1px);
+        }
+        /* Color de las tarjetas por tipo */
+        .local-type { border-left-color: #3b82f6; }
+        .carryout-type { border-left-color: #f97316; }
+        .delivery-type { border-left-color: #10b981; }
+
+        /* Colores de fondo para el tipo de orden en el badge */
+        .local-bg { background-color: #3b82f6; }
+        .carryout-bg { background-color: #f97316; }
+        .delivery-bg { background-color: #10b981; }
+    </style>
+    
+    <script>
+        // --- Variables y Datos Estáticos ---
+        
+        // Almacenamiento local de los pedidos
+        let ordersData = [];
+
+        // Estados del flujo Kanban
+        const STATUSES = ["Recibida", "En Cocina", "Lista", "Entregada"];
+        const STATUS_COLORS = {
+            "Recibida": "bg-column-received",
+            "En Cocina": "bg-column-cooking",
+            "Lista": "bg-column-ready",
+            "Entregada": "bg-column-delivered"
+        };
+        const STATUS_NEXT_ACTION = {
+            "Recibida": "Mandar a Cocina",
+            "En Cocina": "Marcar como Lista",
+            "Lista": "Marcar como Entregada",
+            "Entregada": "Completada"
+        };
+        const STATUS_NEXT_STATUS = {
+            "Recibida": "En Cocina",
+            "En Cocina": "Lista",
+            "Lista": "Entregada",
+            "Entregada": "Entregada"
+        };
+
+        // Datos de Ejemplo iniciales
+        const SAMPLE_ORDERS = [
+            {
+                id: "doc-001",
+                orderId: "A-001",
+                items: [{ name: "Tacos al Pastor", qty: 3, notes: "Sin cebolla" }, { name: "Agua Fresca", qty: 1 }],
+                orderType: "Local",
+                status: "Recibida",
+                tableDetails: "Mesa 4",
+                timestamp: new Date(Date.now() - 5 * 60000), // Hace 5 minutos
+            },
+            {
+                id: "doc-002",
+                orderId: "B-002",
+                items: [{ name: "Hamburguesa Clásica", qty: 2 }, { name: "Papas Fritas", qty: 1 }],
+                orderType: "Para llevar",
+                status: "En Cocina",
+                tableDetails: "Retiro en 15:00",
+                timestamp: new Date(Date.now() - 15 * 60000), // Hace 15 minutos
+            },
+            {
+                id: "doc-003",
+                orderId: "C-003",
+                items: [{ name: "Ensalada César", qty: 1 }],
+                orderType: "Domicilio",
+                status: "Lista",
+                tableDetails: "C/ Falsa 123",
+                timestamp: new Date(Date.now() - 30 * 60000), // Hace 30 minutos
+            }
+        ];
+
+        // --- Funciones de Gestión Local ---
+
+        /**
+         * Mueve un pedido al siguiente estado en el array local.
+         * @param {string} docId - ID del documento (local).
+         * @param {string} currentStatus - Estado actual del pedido.
+         */
+        window.moveOrderToNextStatus = function(docId, currentStatus) {
+            if (currentStatus === "Entregada") {
+                showToast("Este pedido ya está completado.", 'info');
+                return;
+            }
+
+            const nextStatus = STATUS_NEXT_STATUS[currentStatus];
+            const orderIndex = ordersData.findIndex(order => order.id === docId);
+
+            if (orderIndex > -1) {
+                ordersData[orderIndex].status = nextStatus;
+                // Forzar re-render del tablero con los datos actualizados
+                renderKanbanBoard(ordersData); 
+                showToast(`Pedido movido a: ${nextStatus}`, 'info');
+            }
+        }
+
+        /**
+         * Crea un pedido de ejemplo aleatorio y lo agrega a los datos locales.
+         */
+        window.simulateNewOrder = function() {
+            const types = ["Local", "Para llevar", "Domicilio"];
+            const orderType = types[Math.floor(Math.random() * types.length)];
+            const newOrderId = `P-${Math.floor(Math.random() * 9000) + 1000}`;
+            const newDocId = `doc-${Date.now()}`;
+
+            const orderData = {
+                id: newDocId,
+                orderId: newOrderId,
+                items: [
+                    { name: "Tacos al Pastor", qty: Math.floor(Math.random() * 5) + 1, notes: "" },
+                    { name: "Cerveza Modelo", qty: Math.floor(Math.random() * 3) + 1 },
+                    { name: "Flan Casero", qty: 1 }
+                ].filter(() => Math.random() > 0.3), // Quita algunos ítems aleatoriamente
+                orderType: orderType,
+                status: "Recibida",
+                tableDetails: orderType === "Local" ? `Mesa ${Math.floor(Math.random() * 10) + 1}` : (orderType === "Para llevar" ? "Cliente para Retirar" : "C/ Simulación #123"),
+                timestamp: new Date(),
+            };
+
+            ordersData.unshift(orderData); // Agregar al inicio para que aparezca primero en la columna
+            renderKanbanBoard(ordersData);
+            showToast(`Nuevo pedido (${newOrderId}) recibido.`, 'success');
+        }
+
+        // --- Lógica de Renderizado Kanban ---
+
+        /**
+         * Renderiza todo el tablero Kanban usando el array de pedidos local.
+         * @param {Array} orders - Lista de todos los pedidos.
+         */
+        function renderKanbanBoard(orders) {
+            // Limpiar todas las columnas
+            STATUSES.forEach(status => {
+                document.getElementById(`column-${status.replace(/\s/g, '')}`).innerHTML = '';
+            });
+
+            if (orders.length === 0) {
+                document.getElementById(`column-Recibida`).innerHTML = '<p class="text-center text-gray-400 mt-4">No hay pedidos activos.</p>';
+                return;
+            }
+
+            // Agrupar pedidos por estado
+            const groupedOrders = orders.reduce((acc, order) => {
+                acc[order.status] = acc[order.status] || [];
+                acc[order.status].push(order);
+                return acc;
+            }, {});
+
+            STATUSES.forEach(status => {
+                const columnId = `column-${status.replace(/\s/g, '')}`;
+                const container = document.getElementById(columnId);
+                
+                if (container) {
+                    const columnOrders = groupedOrders[status] || [];
+                    
+                    if (columnOrders.length === 0) {
+                        container.innerHTML = `<p class="text-center text-gray-500 mt-4">${status === 'Entregada' ? 'Historial de pedidos completados.' : 'Sin pedidos en este estado.'}</p>`;
+                    } else {
+                        container.innerHTML = ''; // Limpiar si hay datos
+                        // Renderizar tarjetas
+                        columnOrders.forEach(order => {
+                            const cardHtml = createOrderCardHtml(order);
+                            container.innerHTML += cardHtml;
+                        });
+                    }
+                }
+            });
+        }
+
+        /**
+         * Genera el HTML para una tarjeta de pedido.
+         * @param {object} order - Objeto del pedido.
+         * @returns {string} HTML de la tarjeta.
+         */
+        function createOrderCardHtml(order) {
+            const timeElapsed = calculateTimeElapsed(order.timestamp);
+            const typeClass = order.orderType === 'Local' ? 'local-type' : (order.orderType === 'Para llevar' ? 'carryout-type' : 'delivery-type');
+            const buttonColor = STATUS_COLORS[STATUS_NEXT_STATUS[order.status]] || 'bg-gray-500';
+
+            const itemsHtml = order.items.map(item =>
+                `<li class="text-sm">
+                    <span class="font-semibold">${item.qty}x</span> ${item.name}
+                    ${item.notes ? `<span class="text-red-500 text-xs"> (${item.notes})</span>` : ''}
+                </li>`
+            ).join('');
+
+            return `
+                <div class="order-card bg-white p-4 mb-4 rounded-xl shadow-md border-l-4 ${typeClass} border-l-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xl font-extrabold text-gray-900">${order.orderId}</span>
+                        <span class="text-xs font-medium text-white px-2 py-1 rounded-full ${order.orderType === 'Local' ? 'local-bg' : (order.orderType === 'Para llevar' ? 'carryout-bg' : 'delivery-bg')}">${order.orderType}</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-2 truncate">${order.tableDetails}</p>
+
+                    <div class="bg-gray-50 p-3 rounded-lg mb-3">
+                        <ul class="list-disc ml-4 text-gray-700">
+                            ${itemsHtml}
+                        </ul>
+                    </div>
+
+                    <div class="flex justify-between items-center text-xs text-gray-500 mb-3">
+                        <span>Tiempo: <span class="font-semibold">${timeElapsed}</span></span>
+                    </div>
+
+                    ${order.status !== 'Entregada' ?
+                        `<button onclick="window.moveOrderToNextStatus('${order.id}', '${order.status}')" class="w-full text-white py-2 rounded-lg font-semibold ${buttonColor} hover:opacity-90 transition duration-150">
+                            ${STATUS_NEXT_ACTION[order.status]}
+                        </button>`
+                        :
+                        `<span class="block w-full text-center bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold">Completada</span>`
+                    }
+                </div>
+            `;
+        }
+
+        /**
+         * Calcula el tiempo transcurrido desde la marca de tiempo.
+         * @param {Date} date - Objeto JS Date.
+         * @returns {string} Tiempo transcurrido formateado.
+         */
+        function calculateTimeElapsed(date) {
+            const now = new Date();
+            const diffInSeconds = Math.floor((now - date) / 1000);
+
+            if (diffInSeconds < 60) {
+                return `${diffInSeconds}s`;
+            } else if (diffInSeconds < 3600) {
+                const minutes = Math.floor(diffInSeconds / 60);
+                const seconds = diffInSeconds % 60;
+                return `${minutes}m ${seconds}s`;
+            } else {
+                const hours = Math.floor(diffInSeconds / 3600);
+                const minutes = Math.floor((diffInSeconds % 3600) / 60);
+                return `${hours}h ${minutes}m`;
+            }
+        }
+
+        // --- Funciones de Utilidad ---
+
+        /**
+         * Muestra una notificación temporal (Toast).
+         */
+        function showToast(message, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'fixed bottom-4 right-4 p-4 rounded-xl shadow-2xl z-50 transition-transform duration-300 transform translate-x-full';
+
+            let bgColor;
+            switch (type) {
+                case 'success': bgColor = 'bg-primary'; break;
+                case 'error': bgColor = 'bg-red-600'; break;
+                case 'info': bgColor = 'bg-blue-500'; break;
+                default: bgColor = 'bg-gray-700';
+            }
+            toast.classList.add(bgColor, 'text-white');
+            toast.classList.remove('translate-x-full');
+
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+            }, 3000);
+        }
+
+        /**
+         * Inicialización: Carga los datos de ejemplo y renderiza el tablero.
+         */
+        function initializeApp() {
+            ordersData = [...SAMPLE_ORDERS]; // Cargar datos iniciales
+            renderKanbanBoard(ordersData);
+            
+            // Actualizar el tiempo transcurrido cada segundo
+            setInterval(function() {
+                renderKanbanBoard(ordersData); 
+            }, 1000);
+        }
+
+        // Inicializar al cargar la página
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <!-- Encabezado y Controles -->
+    <header class="bg-white shadow-md p-4 flex flex-col md:flex-row justify-between items-center sticky top-0 z-20">
+        <h1 class="text-3xl font-bold text-primary mb-3 md:mb-0">Panel de Pedidos Kanban (Estático)</h1>
+        <div class="flex space-x-4 items-center">
+            <button onclick="simulateNewOrder()" class="bg-primary text-white px-6 py-2 rounded-xl font-semibold hover:bg-secondary transition duration-150 shadow-lg flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                </svg>
+                 Nuevo Pedido
+            </button>
+        </div>
+    </header>
+
+    <div class="p-4 bg-gray-200">
+         <!-- El ID de usuario se reemplaza por un mensaje estático -->
+        <p id="user-id-display" class="text-sm text-gray-600 truncate text-right">Modo Estático: Sin Conexión a Base de Datos</p>
+    </div>
+
+    <!-- Contenedor del Tablero Kanban -->
+    <main class="p-4 flex space-x-4 overflow-x-auto h-full">
+
+        <!-- Columna: Recibida -->
+        <div class="kanban-column bg-column-received bg-opacity-20 shadow-inner">
+            <h2 class="text-xl font-extrabold text-column-received mb-4 sticky top-0 p-2 -m-2 bg-column-received bg-opacity-90 rounded-t-lg shadow-sm text-white">1. Recibida</h2>
+            <div id="column-Recibida" class="space-y-4">
+                <!-- Tarjetas se renderizan aquí -->
+            </div>
+        </div>
+
+        <!-- Columna: En Cocina -->
+        <div class="kanban-column bg-column-cooking bg-opacity-20 shadow-inner">
+            <h2 class="text-xl font-extrabold text-column-cooking mb-4 sticky top-0 p-2 -m-2 bg-column-cooking bg-opacity-90 rounded-t-lg shadow-sm text-white">2. En Cocina</h2>
+            <div id="column-EnCocina" class="space-y-4">
+                <!-- Tarjetas se renderizan aquí -->
+            </div>
+        </div>
+
+        <!-- Columna: Lista -->
+        <div class="kanban-column bg-column-ready bg-opacity-20 shadow-inner">
+            <h2 class="text-xl font-extrabold text-column-ready mb-4 sticky top-0 p-2 -m-2 bg-column-ready bg-opacity-90 rounded-t-lg shadow-sm text-white">3. Lista</h2>
+            <div id="column-Lista" class="space-y-4">
+                <!-- Tarjetas se renderizan aquí -->
+            </div>
+        </div>
+
+        <!-- Columna: Entregada -->
+        <div class="kanban-column bg-column-delivered bg-opacity-20 shadow-inner">
+            <h2 class="text-xl font-extrabold text-column-delivered mb-4 sticky top-0 p-2 -m-2 bg-column-delivered bg-opacity-90 rounded-t-lg shadow-sm text-white">4. Entregada</h2>
+            <div id="column-Entregada" class="space-y-4">
+                <!-- Tarjetas se renderizan aquí -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast de Notificaciones -->
+    <div id="toast" class="fixed bottom-4 right-4 p-4 rounded-lg shadow-xl z-50 transition-transform duration-300 transform translate-x-full" role="alert">
+        Mensaje de notificación.
+    </div>
+
+</body>
+</html>

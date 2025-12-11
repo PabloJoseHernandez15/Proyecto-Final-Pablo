@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración de Módulos Avanzados (Maqueta)</title>
+    <!-- Carga de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1f2937; /* Gray-800 */
+            color: #f3f4f6; /* Gray-100 */
+        }
+        .card {
+            background-color: #374151; /* Gray-700 */
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            padding: 1.5rem;
+        }
+        .header-bg {
+            background-color: #111827; /* Gray-900 */
+        }
+        .btn-primary {
+            background-color: #10b981; /* Emerald-500 */
+            transition: background-color 0.2s;
+        }
+        .btn-primary:hover {
+            background-color: #059669; /* Emerald-600 */
+        }
+        .btn-secondary {
+            background-color: #3b82f6; /* Blue-500 */
+            transition: background-color 0.2s;
+        }
+        .btn-secondary:hover {
+            background-color: #2563eb; /* Blue-600 */
+        }
+        
+        /* Estilo del Toggle Switch (Inspirado en Tailwind) */
+        .toggle-switch input:checked + .slider {
+            background-color: #10b981; /* Emerald-500 */
+        }
+        .toggle-switch input:checked + .slider:before {
+            transform: translateX(1.25rem);
+        }
+        .slider {
+            background-color: #4b5563; /* Gray-600 */
+            transition: .4s;
+            cursor: pointer;
+        }
+        .slider:before {
+            content: "";
+            background-color: #f3f4f6; /* Gray-100 */
+            transition: .4s;
+        }
+    </style>
+
+    <script>
+        // --- Utilidad para Notificaciones (Toast) ---
+        function showToast(message, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'fixed bottom-4 right-4 p-4 rounded-xl shadow-2xl z-50 transition-transform duration-300 transform translate-x-full';
+
+            let bgColor;
+            switch (type) {
+                case 'success': bgColor = 'bg-green-600'; break;
+                case 'error': bgColor = 'bg-red-600'; break;
+                case 'info': bgColor = 'bg-blue-500'; break;
+                default: bgColor = 'bg-gray-700';
+            }
+            toast.classList.add(bgColor, 'text-white');
+            toast.classList.remove('translate-x-full');
+
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+            }, 5000);
+        }
+
+        // --- Lógica de Simulación de Toggles y Botones ---
+        function handleToggle(checkbox) {
+            const featureName = checkbox.getAttribute('data-feature');
+            const action = checkbox.checked ? 'activado' : 'desactivado';
+            
+            showToast(`Módulo '${featureName}' ${action} (Simulación).`, 'info');
+            
+            // Simular deshabilitar/habilitar configuración
+            const configSection = document.getElementById(`config-${featureName.toLowerCase().replace(/\s/g, '-')}`);
+            if (configSection) {
+                if (checkbox.checked) {
+                    configSection.classList.remove('opacity-50', 'pointer-events-none');
+                } else {
+                    configSection.classList.add('opacity-50', 'pointer-events-none');
+                }
+            }
+        }
+        
+        function handleConfigSave(featureName) {
+            showToast(`Configuración de '${featureName}' guardada (Simulación).`, 'success');
+        }
+
+        // --- Inicialización ---
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('user-id-display').textContent = `ID Usuario: Diseño Estático`;
+
+            // Inicializar el estado de la opacidad según los checkboxes pre-marcados
+            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                handleToggle(checkbox);
+            });
+        });
+    </script>
+</head>
+<body>
+
+    <!-- Encabezado -->
+    <header class="header-bg shadow-lg p-4 sticky top-0 z-20">
+        <div class="flex justify-between items-center max-w-7xl mx-auto">
+            <h1 class="text-3xl font-bold text-primary">⚡ Opciones Avanzadas (Módulos Opcionales)</h1>
+            <p id="user-id-display" class="text-sm text-gray-400 truncate">Diseño Estático</p>
+        </div>
+    </header>
+
+    <!-- Contenedor Principal -->
+    <main class="p-6 max-w-7xl mx-auto space-y-8">
+
+        <!-- Sección 1: Comunicación y Notificaciones -->
+        <section>
+            <h2 class="text-2xl font-semibold mb-4 text-white">📡 Comunicación y Alertas</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <!-- Módulo 1: WhatsApp Business -->
+                <div class="card space-y-4">
+                    <div class="flex justify-between items-center pb-2 border-b border-gray-600">
+                        <h3 class="text-xl font-medium text-white">Integración con WhatsApp Business</h3>
+                        <!-- Toggle Switch -->
+                        <label class="toggle-switch relative inline-block w-10 h-6">
+                            <input type="checkbox" data-feature="WhatsApp" onchange="handleToggle(this)" class="hidden" checked>
+                            <span class="slider absolute top-0 left-0 right-0 bottom-0 rounded-full before:absolute before:content-[''] before:h-5 before:w-5 before:left-0.5 before:bottom-0.5 before:rounded-full"></span>
+                        </label>
+                    </div>
+
+                    <p class="text-gray-400 text-sm">Permite el envío automático de confirmaciones de pedido, tickets electrónicos y promociones a tus clientes.</p>
+                    
+                    <div id="config-whatsapp" class="space-y-3">
+                        <input type="text" placeholder="ID de Cuenta de WhatsApp Business" class="w-full p-2 bg-gray-600 border border-gray-600 rounded-lg text-white focus:ring-primary focus:border-primary">
+                        <button onclick="handleConfigSave('WhatsApp')" class="w-full py-2 btn-primary text-white font-semibold rounded-lg">
+                            Conectar Cuenta
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Módulo 2: Notificaciones Push -->
+                <div class="card space-y-4">
+                    <div class="flex justify-between items-center pb-2 border-b border-gray-600">
+                        <h3 class="text-xl font-medium text-white">Notificaciones Push (Internas)</h3>
+                        <!-- Toggle Switch -->
+                        <label class="toggle-switch relative inline-block w-10 h-6">
+                            <input type="checkbox" data-feature="Notificaciones Push" onchange="handleToggle(this)" class="hidden" checked>
+                            <span class="slider absolute top-0 left-0 right-0 bottom-0 rounded-full before:absolute before:content-[''] before:h-5 before:w-5 before:left-0.5 before:bottom-0.5 before:rounded-full"></span>
+                        </label>
+                    </div>
+
+                    <p class="text-gray-400 text-sm">Alerta al personal de cocina/meseros instantáneamente sobre nuevos pedidos o cambios de estado, incluso con la app en segundo plano.</p>
+                    
+                    <div id="config-notificaciones-push" class="space-y-3">
+                        <label class="block text-sm font-medium text-gray-400">Canales de Alerta:</label>
+                        <select class="w-full p-2 bg-gray-600 border border-gray-600 rounded-lg text-white">
+                            <option>Alertas de Cocina</option>
+                            <option>Alertas de Caja</option>
+                        </select>
+                        <button onclick="handleConfigSave('Notificaciones Push')" class="w-full py-2 btn-secondary text-white font-semibold rounded-lg">
+                            Probar Notificación
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Sección 2: Pagos en Línea y Financiamiento -->
+        <section>
+            <h2 class="text-2xl font-semibold mb-4 text-white">💳 Procesamiento de Pagos en Línea</h2>
+            
+            <div class="card space-y-6">
+                <div class="flex justify-between items-center pb-2 border-b border-gray-600">
+                    <h3 class="text-xl font-medium text-white">Activación de Pagos Digitales (Stripe, PayPal, etc.)</h3>
+                    <!-- Toggle Switch -->
+                    <label class="toggle-switch relative inline-block w-10 h-6">
+                        <input type="checkbox" data-feature="Pagos en Línea" onchange="handleToggle(this)" class="hidden">
+                        <span class="slider absolute top-0 left-0 right-0 bottom-0 rounded-full before:absolute before:content-[''] before:h-5 before:w-5 before:left-0.5 before:bottom-0.5 before:rounded-full"></span>
+                    </label>
+                </div>
+
+                <p class="text-gray-400 text-sm">Conecte sus cuentas para aceptar pagos con tarjeta de crédito/débito directamente desde el sistema de pedidos en línea.</p>
+                
+                <div id="config-pagos-en-línea" class="space-y-4">
+                    
+                    <!-- Opción 1: Stripe -->
+                    <div class="flex items-center justify-between p-3 bg-gray-600 rounded-lg">
+                        <span class="font-medium">Stripe</span>
+                        <button class="px-3 py-1 bg-indigo-500 hover:bg-indigo-600 text-white text-sm rounded-lg shadow-md" onclick="handleConfigSave('Stripe')">
+                            Configurar Claves
+                        </button>
+                    </div>
+                    
+                    <!-- Opción 2: Mercado Pago -->
+                    <div class="flex items-center justify-between p-3 bg-gray-600 rounded-lg">
+                        <span class="font-medium">Mercado Pago</span>
+                        <button class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg shadow-md" onclick="handleConfigSave('Mercado Pago')">
+                            Configurar Credenciales
+                        </button>
+                    </div>
+
+                    <!-- Opción 3: PayPal -->
+                    <div class="flex items-center justify-between p-3 bg-gray-600 rounded-lg">
+                        <span class="font-medium">PayPal</span>
+                        <button class="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-white text-sm rounded-lg shadow-md" onclick="handleConfigSave('PayPal')">
+                            Configurar API
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección 3: Operación en Sitio e Impresión -->
+        <section>
+            <h2 class="text-2xl font-semibold mb-4 text-white">🖨️ Operación de Local</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <!-- Módulo 3: Módulo de Mesas -->
+                <div class="card space-y-4">
+                    <div class="flex justify-between items-center pb-2 border-b border-gray-600">
+                        <h3 class="text-xl font-medium text-white">Módulo de Mesas (Consumo en Sitio)</h3>
+                        <!-- Toggle Switch -->
+                        <label class="toggle-switch relative inline-block w-10 h-6">
+                            <input type="checkbox" data-feature="Módulo Mesas" onchange="handleToggle(this)" class="hidden" checked>
+                            <span class="slider absolute top-0 left-0 right-0 bottom-0 rounded-full before:absolute before:content-[''] before:h-5 before:w-5 before:left-0.5 before:bottom-0.5 before:rounded-full"></span>
+                        </label>
+                    </div>
+
+                    <p class="text-gray-400 text-sm">Gestiona la disponibilidad, el estado y el historial de consumo de cada mesa en tu restaurante.</p>
+                    
+                    <div id="config-módulo-mesas" class="space-y-3">
+                        <label class="block text-sm font-medium text-gray-400">Número de Mesas Activas:</label>
+                        <input type="number" value="15" min="1" class="w-full p-2 bg-gray-600 border border-gray-600 rounded-lg text-white">
+                        <button onclick="handleConfigSave('Módulo Mesas')" class="w-full py-2 btn-secondary text-white font-semibold rounded-lg">
+                            Ver Mapa de Mesas
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Módulo 4: Impresión Automática de Tickets -->
+                <div class="card space-y-4">
+                    <div class="flex justify-between items-center pb-2 border-b border-gray-600">
+                        <h3 class="text-xl font-medium text-white">Impresión Automática de Tickets (KDS/POS)</h3>
+                        <!-- Toggle Switch -->
+                        <label class="toggle-switch relative inline-block w-10 h-6">
+                            <input type="checkbox" data-feature="Impresión Tickets" onchange="handleToggle(this)" class="hidden" checked>
+                            <span class="slider absolute top-0 left-0 right-0 bottom-0 rounded-full before:absolute before:content-[''] before:h-5 before:w-5 before:left-0.5 before:bottom-0.5 before:rounded-full"></span>
+                        </label>
+                    </div>
+
+                    <p class="text-gray-400 text-sm">Envía automáticamente las órdenes a impresoras de cocina (KDS) y genera el ticket de venta final (POS).</p>
+                    
+                    <div id="config-impresión-tickets" class="space-y-3">
+                        <label class="block text-sm font-medium text-gray-400">Dirección IP de Impresora Principal:</label>
+                        <input type="text" placeholder="Ej: 192.168.1.100" class="w-full p-2 bg-gray-600 border border-gray-600 rounded-lg text-white">
+                        <button onclick="handleConfigSave('Impresión Tickets')" class="w-full py-2 btn-primary text-white font-semibold rounded-lg">
+                            Probar Conexión
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Toast de Notificaciones -->
+    <div id="toast" class="fixed bottom-4 right-4 p-4 rounded-lg shadow-xl z-50 transition-transform duration-300 transform translate-x-full" role="alert">
+        Mensaje de notificación.
+    </div>
+
+</body>
+</html>

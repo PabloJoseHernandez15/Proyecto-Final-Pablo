@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Personal y Permisos (Diseño Estático)</title>
+    <!-- Carga de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1f2937; /* Gray-800 */
+            color: #f3f4f6; /* Gray-100 */
+        }
+        .card {
+            background-color: #374151; /* Gray-700 */
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        .header-bg {
+            background-color: #111827; /* Gray-900 */
+        }
+        .btn-primary {
+            background-color: #10b981; /* Emerald-500 */
+            transition: background-color 0.2s;
+        }
+        .btn-primary:hover {
+            background-color: #059669; /* Emerald-600 */
+        }
+        .btn-secondary {
+            background-color: #3b82f6; /* Blue-500 */
+        }
+        .btn-secondary:hover {
+            background-color: #2563eb; /* Blue-600 */
+        }
+        .permission-true { color: #10b981; }
+        .permission-false { color: #ef4444; }
+    </style>
+
+    <script>
+        // --- Definición Estática de Roles y Permisos (RBAC) ---
+        const ROLES_PERMISSIONS = {
+            'Cocina': {
+                canViewReports: false,
+                canManageOrders: true,
+                canTakePayments: false,
+                canManageStaff: false,
+                description: 'Preparación y seguimiento de pedidos.'
+            },
+            'Meseros': {
+                canViewReports: false,
+                canManageOrders: true,
+                canTakePayments: false,
+                canManageStaff: false,
+                description: 'Atención a mesas y creación de órdenes.'
+            },
+            'Caja': {
+                canViewReports: true,
+                canManageOrders: true,
+                canTakePayments: true,
+                canManageStaff: false,
+                description: 'Cobro de pedidos y gestión de cierre de caja.'
+            },
+            'Administrador Secundario': {
+                canViewReports: true,
+                canManageOrders: true,
+                canTakePayments: true,
+                canManageStaff: true,
+                description: 'Supervisión general y gestión de personal.'
+            }
+        };
+
+        // --- Utilidad para Notificaciones (Toast) ---
+        function showToast(message, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'fixed bottom-4 right-4 p-4 rounded-xl shadow-2xl z-50 transition-transform duration-300 transform translate-x-full';
+
+            let bgColor;
+            switch (type) {
+                case 'success': bgColor = 'bg-green-600'; break;
+                case 'error': bgColor = 'bg-red-600'; break;
+                case 'info': bgColor = 'bg-blue-500'; break;
+                default: bgColor = 'bg-gray-700';
+            }
+            toast.classList.add(bgColor, 'text-white');
+            toast.classList.remove('translate-x-full');
+
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+            }, 5000);
+        }
+
+        // --- Lógica Simplificada para Mostrar Permisos (Modal) ---
+        window.showPermissions = function(button) {
+            const roleName = button.getAttribute('data-role');
+            const permissions = ROLES_PERMISSIONS[roleName];
+            
+            if (!permissions) return;
+
+            document.getElementById('permissions-title').textContent = `Permisos del Rol: ${roleName}`;
+            document.getElementById('permissions-description').textContent = ROLES_PERMISSIONS[roleName].description;
+
+            const listContainer = document.getElementById('permissions-list');
+            listContainer.innerHTML = '';
+
+            const permissionNames = {
+                canViewReports: 'Ver Reportes de Ventas',
+                canManageOrders: 'Gestionar Órdenes (Crear/Mover)',
+                canTakePayments: 'Tomar Pagos / Cerrar Caja',
+                canManageStaff: 'Gestionar Personal (Admin)'
+            };
+
+            Object.keys(permissions).filter(key => key !== 'description').forEach(key => {
+                const isAllowed = permissions[key];
+                const icon = isAllowed 
+                    ? `<span class="permission-true text-xl">✔</span>` 
+                    : `<span class="permission-false text-xl">✖</span>`;
+                
+                const listItem = document.createElement('li');
+                listItem.className = 'flex items-center space-x-3 p-2 border-b border-gray-600 last:border-b-0';
+                listItem.innerHTML = `${icon} <span class="font-medium">${permissionNames[key] || key}</span>`;
+                listContainer.appendChild(listItem);
+            });
+
+            document.getElementById('permissions-modal').classList.remove('hidden');
+        }
+
+        // --- Inicialización y Lógica Estática ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('add-staff-form');
+            const roleSelect = document.getElementById('staff-role');
+            
+            // 1. Populate the role dropdown
+            Object.keys(ROLES_PERMISSIONS).forEach(role => {
+                const option = document.createElement('option');
+                option.value = role;
+                option.textContent = role;
+                roleSelect.appendChild(option);
+            });
+
+            // 2. Mock Form Submission
+            form.addEventListener('submit', (event) => {
+                event.preventDefault();
+                const name = document.getElementById('staff-name').value.trim();
+                const role = document.getElementById('staff-role').value;
+                
+                if (!name || !role) {
+                    showToast("Por favor, ingresa el nombre y selecciona un rol.", 'error');
+                    return;
+                }
+                
+                // Simulate loading
+                const button = document.getElementById('submit-staff-btn');
+                button.disabled = true;
+                button.textContent = 'Simulando...';
+                
+                setTimeout(() => {
+                    form.reset();
+                    showToast(`¡Diseño exitoso! Personal "${name}" agregado (simulado) como ${role}.`, 'success');
+                    button.disabled = false;
+                    button.textContent = 'Agregar Personal';
+                }, 1000);
+            });
+            
+            // 3. Close Modal Listener
+            document.getElementById('close-modal-btn').addEventListener('click', () => {
+                document.getElementById('permissions-modal').classList.add('hidden');
+            });
+
+            // 4. Mock User ID Display
+            document.getElementById('user-id-display').textContent = `ID Usuario: Diseño Estático`;
+        });
+    </script>
+</head>
+<body>
+
+    <!-- Encabezado -->
+    <header class="header-bg shadow-lg p-4 sticky top-0 z-20">
+        <div class="flex justify-between items-center max-w-7xl mx-auto">
+            <h1 class="text-3xl font-bold text-primary">⚙️ Gestión de Personal y Permisos (Maqueta)</h1>
+            <p id="user-id-display" class="text-sm text-gray-400 truncate">Cargando...</p>
+        </div>
+    </header>
+
+    <!-- Contenedor Principal -->
+    <main class="p-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Columna Izquierda: Formulario de Creación de Personal -->
+        <section class="lg:col-span-1 card p-6 h-fit sticky top-20">
+            <h2 class="text-2xl font-semibold mb-4 text-white">👤 Nuevo Empleado (Mock-up)</h2>
+            
+            <form id="add-staff-form" class="space-y-4">
+                
+                <div>
+                    <label for="staff-name" class="block text-sm font-medium text-gray-400 mb-1">Nombre Completo</label>
+                    <input type="text" id="staff-name" name="name" required placeholder="Ej: Sofía Martínez" class="w-full p-3 bg-gray-600 border border-gray-600 rounded-lg text-white focus:ring-primary focus:border-primary">
+                </div>
+                
+                <div>
+                    <label for="staff-role" class="block text-sm font-medium text-gray-400 mb-1">Rol de Trabajo</label>
+                    <select id="staff-role" name="role" required class="w-full p-3 bg-gray-600 border border-gray-600 rounded-lg text-white focus:ring-primary focus:border-primary">
+                        <!-- Opciones cargadas por JS -->
+                    </select>
+                </div>
+                
+                <button id="submit-staff-btn" type="submit" class="w-full py-3 btn-primary text-white font-bold rounded-lg shadow-md transition duration-200">
+                    Agregar Personal
+                </button>
+            </form>
+            
+            <p class="text-xs text-gray-400 mt-4 border-t border-gray-600 pt-3">
+                Nota: Esta acción solo simula la interacción del usuario y muestra una notificación.
+            </p>
+        </section>
+
+        <!-- Columna Derecha: Lista de Personal y Permisos -->
+        <section class="lg:col-span-2 space-y-6">
+            <h2 class="text-2xl font-semibold text-white">👥 Personal Registrado (Lista Estática)</h2>
+            
+            <!-- Contenedor de la lista de empleados con MOCK DATA -->
+            <div id="staff-list-container" class="space-y-3">
+                
+                <!-- Mock Empleado 1: Administrador Secundario -->
+                <div class="flex items-center justify-between p-4 card hover:bg-gray-600 transition duration-150">
+                    <div>
+                        <p class="font-bold text-lg">Ricardo Gómez</p>
+                        <p class="text-sm text-primary font-medium">Administrador Secundario</p>
+                        <p class="text-xs text-gray-400">ID: MOCK-ADMIN-01...</p>
+                    </div>
+                    <button data-role="Administrador Secundario" onclick="showPermissions(this)" class="px-3 py-1 btn-secondary text-white rounded-lg text-sm shadow-md">
+                        Ver Permisos
+                    </button>
+                </div>
+                
+                <!-- Mock Empleado 2: Meseros -->
+                <div class="flex items-center justify-between p-4 card hover:bg-gray-600 transition duration-150">
+                    <div>
+                        <p class="font-bold text-lg">Lucía Hernández</p>
+                        <p class="text-sm text-primary font-medium">Meseros</p>
+                        <p class="text-xs text-gray-400">ID: MOCK-MESERO-02...</p>
+                    </div>
+                    <button data-role="Meseros" onclick="showPermissions(this)" class="px-3 py-1 btn-secondary text-white rounded-lg text-sm shadow-md">
+                        Ver Permisos
+                    </button>
+                </div>
+                
+                <!-- Mock Empleado 3: Cocina -->
+                <div class="flex items-center justify-between p-4 card hover:bg-gray-600 transition duration-150">
+                    <div>
+                        <p class="font-bold text-lg">Javier Pinto</p>
+                        <p class="text-sm text-primary font-medium">Cocina</p>
+                        <p class="text-xs text-gray-400">ID: MOCK-COCINA-03...</p>
+                    </div>
+                    <button data-role="Cocina" onclick="showPermissions(this)" class="px-3 py-1 btn-secondary text-white rounded-lg text-sm shadow-md">
+                        Ver Permisos
+                    </button>
+                </div>
+                
+                <!-- Mock Empleado 4: Caja -->
+                <div class="flex items-center justify-between p-4 card hover:bg-gray-600 transition duration-150">
+                    <div>
+                        <p class="font-bold text-lg">Elena Ríos</p>
+                        <p class="text-sm text-primary font-medium">Caja</p>
+                        <p class="text-xs text-gray-400">ID: MOCK-CAJA-04...</p>
+                    </div>
+                    <button data-role="Caja" onclick="showPermissions(this)" class="px-3 py-1 btn-secondary text-white rounded-lg text-sm shadow-md">
+                        Ver Permisos
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Panel de información sobre RBAC -->
+            <div class="card p-5 border-l-4 border-secondary">
+                <h3 class="text-xl font-semibold text-secondary mb-2">Control de Acceso Basado en Roles (RBAC)</h3>
+                <p class="text-gray-300 text-sm">
+                    El sistema utiliza roles predefinidos (Cocina, Meseros, Caja, Admin) para asignar permisos de manera eficiente. Esto asegura que cada empleado solo tenga acceso a las herramientas necesarias para su función, mejorando la seguridad y reduciendo errores.
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal de Visualización de Permisos -->
+    <div id="permissions-modal" class="fixed inset-0 bg-black bg-opacity-75 hidden flex items-center justify-center z-50 p-4">
+        <div class="card w-full max-w-md p-6 transform transition-all duration-300">
+            <h3 id="permissions-title" class="text-2xl font-bold mb-2 text-primary">Permisos del Rol</h3>
+            <p id="permissions-description" class="text-gray-400 mb-4 border-b border-gray-600 pb-3"></p>
+            
+            <ul id="permissions-list" class="space-y-1">
+                <!-- Permisos insertados por JS al hacer click -->
+            </ul>
+            
+            <button id="close-modal-btn" class="mt-6 w-full py-2 btn-secondary text-white font-semibold rounded-lg">
+                Cerrar
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast de Notificaciones -->
+    <div id="toast" class="fixed bottom-4 right-4 p-4 rounded-lg shadow-xl z-50 transition-transform duration-300 transform translate-x-full" role="alert">
+        Mensaje de notificación.
+    </div>
+
+</body>
+</html>

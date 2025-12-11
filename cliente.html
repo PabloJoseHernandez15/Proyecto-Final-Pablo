@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balcón del Zócalo | Ciudad de México</title>
+    <!-- Carga de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // Paleta adaptada del diseño
+                        'dark-primary': '#0F3447', // Azul oscuro / Navy Teal
+                        'accent-green': '#00BFA6', // Verde brillante / Cyan Teal
+                        'light-bg': '#EAEAEA', // Fondo gris claro
+                        'card-border': '#3D5E70', // Borde de tarjeta
+                        'dark-text': '#1E3A8A', // Azul más oscuro para texto principal
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Estilos adicionales para la banda diagonal del diseño */
+        .striped-bg {
+            background: linear-gradient(45deg, #00BFA6 25%, transparent 25%, transparent 50%, #00BFA6 50%, #00BFA6 75%, transparent 75%, transparent);
+            background-size: 20px 20px;
+        }
+
+        /* Clase para simular el borde sutil de las tarjetas */
+        .card-outline {
+            border: 1px solid #c9c9c9;
+        }
+
+        /* Estilo para el botón simulado en el header oscuro */
+        .header-button-placeholder {
+            min-height: 48px;
+            min-width: 150px;
+        }
+
+        /* Estilo para el botón flotante del carrito */
+        .floating-cart {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 50;
+            cursor: pointer;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* NOTA: Se eliminó el estilo .card-image-placeholder para usar etiquetas <img> directamente en el HTML */
+    </style>
+</head>
+
+<body class="bg-light-bg font-sans text-dark-text">
+
+    <!-- 1. Barra de Navegación (Dark Primary) -->
+    <header class="bg-dark-primary text-white shadow-lg sticky top-0 z-20">
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logotipo/Nombre -->
+                <a href="#" class="text-xl font-bold tracking-wider rounded">Balcón del Zócalo</a>
+
+                <!-- Menú de Navegación -->
+                <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                    <a href="#menu" class="py-2 px-3 hover:text-accent-green transition duration-300">Menú</a>
+                    <a href="#seguimiento" class="py-2 px-3 hover:text-accent-green transition duration-300">Pedido</a>
+                    <a href="#reservas" class="py-2 px-3 hover:text-accent-green transition duration-300">Reservas</a>
+                    <a href="#ubicacion" class="py-2 px-3 hover:text-accent-green transition duration-300">Ubicación</a>
+                </div>
+
+                <!-- Botón de Menú Móvil (Placeholder) -->
+                <div class="sm:hidden">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-white hover:text-accent-green focus:outline-none transition duration-150 ease-in-out">
+                        <!-- Icono de Hamburguesa -->
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <!-- Menú Móvil (oculto por defecto) -->
+        <div id="mobile-menu" class="hidden sm:hidden bg-dark-primary/95">
+            <div class="px-2 pt-2 pb-3 space-y-1">
+                <a href="#menu" class="block py-2 px-3 hover:bg-dark-primary rounded-md text-white hover:text-accent-green transition duration-300">Menú</a>
+                <a href="#seguimiento" class="block py-2 px-3 hover:bg-dark-primary rounded-md text-white hover:text-accent-green transition duration-300">Pedido</a>
+                <a href="#reservas" class="block py-2 px-3 hover:bg-dark-primary rounded-md text-white hover:text-accent-green transition duration-300">Reservas</a>
+                <a href="#ubicacion" class="block py-2 px-3 hover:bg-dark-primary rounded-md text-white hover:text-accent-green transition duration-300">Ubicación</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 2. Sección Principal / Hero (Dark Primary) -->
+    <section id="hero" class="bg-dark-primary py-16 sm:py-24 text-center text-white">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="space-y-4 mb-10">
+                <!-- Bloques de texto superior -->
+                <div class="h-2 w-1/4 bg-accent-green mx-auto rounded-full"></div>
+                <div class="h-2 w-1/3 bg-accent-green mx-auto rounded-full"></div>
+                <h1 class="text-3xl sm:text-5xl font-extrabold mb-4 mt-8">
+                    Tu Experiencia Digital: Pedido y Seguimiento en Tiempo Real
+                </h1>
+                <p class="text-lg text-gray-300 max-w-2xl mx-auto">
+                    Accede a nuestro menú digital exclusivo y gestiona tu orden para consumo en local, para llevar o a domicilio con total transparencia.
+                </p>
+            </div>
+
+            <!-- Botón Central (Accent Green) - Llamada a la acción principal -->
+            <a href="#menu" class="inline-block bg-accent-green text-dark-primary font-bold py-3 px-8 rounded-full shadow-2xl hover:shadow-3xl hover:bg-white transition duration-300 transform hover:scale-105 mb-16">
+                Explorar Menú y Pedir
+            </a>
+
+            <!-- 3 Bloques de Características (Accent Green) - Funcionalidades Digitales -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-dark-primary">
+                <!-- Bloque 1: Menú Digital (Visualización de productos, variantes y extras) -->
+                <div class="bg-accent-green p-6 rounded-lg shadow-xl hover:shadow-2xl hover:scale-[1.02] transition duration-300 flex flex-col items-center text-left">
+                    <h3 class="font-extrabold text-xl mb-2">Menú Digital Interactivo</h3>
+                    <p class="text-sm">Visualización clara de productos, categorías, precios y promociones. Opciones de variantes y extras (ej. tipo de queso).</p>
+                </div>
+                <!-- Bloque 2: Realización de Pedidos (Instrucciones especiales, tipo de pedido) -->
+                <div class="bg-accent-green p-6 rounded-lg shadow-xl hover:shadow-2xl hover:scale-[1.02] transition duration-300 flex flex-col items-center text-left">
+                    <h3 class="font-extrabold text-xl mb-2">Pedidos Personalizados</h3>
+                    <p class="text-sm">Selección rápida, posibilidad de añadir instrucciones especiales (ej. sin cebolla), y elección de tipo de pedido (local, llevar, domicilio).</p>
+                </div>
+                <!-- Bloque 3: Seguimiento en Tiempo Real (Estado actualizado, tiempo estimado) -->
+                <div class="bg-accent-green p-6 rounded-lg shadow-xl hover:shadow-2xl hover:scale-[1.02] transition duration-300 flex flex-col items-center text-left">
+                    <h3 class="font-extrabold text-xl mb-2">Transparencia Total</h3>
+                    <p class="text-sm">Estado actualizado de la orden (pendiente, en preparación, listo, entregado) y tiempo estimado de preparación en tu móvil.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. Sección de Menú / Cartas (Light BG) -->
+    <section id="menu" class="py-16 sm:py-24">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <!-- Bloques de título -->
+            <div class="h-1 w-1/12 bg-accent-green mx-auto rounded-full mb-2"></div>
+            <div class="h-1 w-1/12 bg-accent-green mx-auto rounded-full mb-10"></div>
+
+            <h2 class="text-3xl font-bold mb-10 text-dark-text">Nuestra Selección de Platos - ¡Pide Ahora!</h2>
+
+            <!-- Grid de 6 Tarjetas con Imágenes -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+                <!-- Tarjeta 1: Pescado en Mole -->
+                <div class="card-outline bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300">
+                    <!-- Contenedor de Imagen -->
+                    <div class="h-40 rounded-md mb-4 overflow-hidden shadow-md">
+                        <img src="images/pezmolenegro.jpg" 
+                             alt="Pescado en Mole Negro" 
+                             class="w-full h-full object-cover rounded-md transition duration-300 hover:scale-105"
+                             onerror="this.onerror=null; this.src='https://placehold.co/600x400/9CA3AF/FFFFFF?text=Imagen+No+Disp.';">
+                    </div>
+                    <!-- Fin Contenedor de Imagen -->
+                    <div class="text-left">
+                        <h3 class="text-xl font-extrabold mb-1">Pescado en Mole Negro</h3>
+                        <p class="text-sm text-gray-500 mb-4">Pescado fresco del día con el tradicional mole negro Oaxaqueño. Contiene nueces.</p>
+                    </div>
+
+                    <div class="flex justify-between items-center mt-4">
+                        <span class="text-2xl font-bold text-accent-green">$320 MXN</span>
+                        <button onclick="addToCart()" class="add-to-cart-btn bg-dark-primary text-white py-2 px-4 rounded-full font-semibold hover:bg-accent-green hover:text-dark-primary transition duration-300 shadow-md">
+                            Añadir
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tarjeta 2: Tlayudas de la Casa -->
+                <div class="card-outline bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300">
+                    <!-- Contenedor de Imagen -->
+                    <div class="h-40 rounded-md mb-4 overflow-hidden shadow-md">
+                        <img src="images/tlayudas.jpg" 
+                             alt="Tlayudas Oaxaqueñas" 
+                             class="w-full h-full object-cover rounded-md transition duration-300 hover:scale-105"
+                             onerror="this.onerror=null; this.src='https://placehold.co/600x400/9CA3AF/FFFFFF?text=Imagen+No+Disp.';">
+                    </div>
+                    <!-- Fin Contenedor de Imagen -->
+                    <div class="text-left">
+                        <h3 class="text-xl font-extrabold mb-1">Tlayudas de la Casa</h3>
+                        <p class="text-sm text-gray-500 mb-4">Tortilla grande de maíz crujiente, asiento, frijol, col, queso y tasajo. ¡Pídelas con extra queso!</p>
+                    </div>
+                    <div class="flex justify-between items-center mt-4">
+                        <span class="text-2xl font-bold text-accent-green">$180 MXN</span>
+                        <button onclick="addToCart()" class="add-to-cart-btn bg-dark-primary text-white py-2 px-4 rounded-full font-semibold hover:bg-accent-green hover:text-dark-primary transition duration-300 shadow-md">
+                            Añadir
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tarjeta 3: Enchiladas del Balcón -->
+                <div class="card-outline bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300">
+                    <!-- Contenedor de Imagen -->
+                    <div class="h-40 rounded-md mb-4 overflow-hidden shadow-md">
+                        <img src="images/enchiladasbalcon.jpg" 
+                             alt="Enchiladas Suizas" 
+                             class="w-full h-full object-cover rounded-md transition duration-300 hover:scale-105"
+                             onerror="this.onerror=null; this.src='https://placehold.co/600x400/9CA3AF/FFFFFF?text=Imagen+No+Disp.';">
+                    </div>
+                    <!-- Fin Contenedor de Imagen -->
+                    <div class="text-left">
+                        <h3 class="text-xl font-extrabold mb-1">Enchiladas del Balcón</h3>
+                        <p class="text-sm text-gray-500 mb-4">Rellenas de pollo deshebrado, bañadas en salsa cremosa de tomate verde y gratinadas.</p>
+                    </div>
+                    <div class="flex justify-between items-center mt-4">
+                        <span class="text-2xl font-bold text-accent-green">$245 MXN</span>
+                        <button onclick="addToCart()" class="add-to-cart-btn bg-dark-primary text-white py-2 px-4 rounded-full font-semibold hover:bg-accent-green hover:text-dark-primary transition duration-300 shadow-md">
+                            Añadir
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tarjeta 4: Sopa de Maíz -->
+                <div class="card-outline bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300">
+                    <!-- Contenedor de Imagen -->
+                    <div class="h-40 rounded-md mb-4 overflow-hidden shadow-md">
+                        <img src="images/zopaazteca.jpg" 
+                             alt="Sopa de Tortilla" 
+                             class="w-full h-full object-cover rounded-md transition duration-300 hover:scale-105"
+                             onerror="this.onerror=null; this.src='https://placehold.co/600x400/9CA3AF/FFFFFF?text=Imagen+No+Disp.';">
+                    </div>
+                    <!-- Fin Contenedor de Imagen -->
+                    <div class="text-left">
+                        <h3 class="text-xl font-extrabold mb-1">Sopa de Maíz Rostizado</h3>
+                        <p class="text-sm text-gray-500 mb-4">Caldo de tomate y chile pasilla, con tiras de tortilla frita, aguacate, crema y queso fresco.</p>
+                    </div>
+                    <div class="flex justify-between items-center mt-4">
+                        <span class="text-2xl font-bold text-accent-green">$110 MXN</span>
+                        <button onclick="addToCart()" class="add-to-cart-btn bg-dark-primary text-white py-2 px-4 rounded-full font-semibold hover:bg-accent-green hover:text-dark-primary transition duration-300 shadow-md">
+                            Añadir
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tarjeta 5: Chile Poblano -->
+                <div class="card-outline bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300">
+                    <!-- Contenedor de Imagen -->
+                    <div class="h-40 rounded-md mb-4 overflow-hidden shadow-md">
+                        <img src="images/chilepoblano.jpg" 
+                             alt="Chile en Nogada" 
+                             class="w-full h-full object-cover rounded-md transition duration-300 hover:scale-105"
+                             onerror="this.onerror=null; this.src='https://placehold.co/600x400/9CA3AF/FFFFFF?text=Imagen+No+Disp.';">
+                    </div>
+                    <!-- Fin Contenedor de Imagen -->
+                    <div class="text-left">
+                        <h3 class="text-xl font-extrabold mb-1">Chile Poblano Relleno</h3>
+                        <p class="text-sm text-gray-500 mb-4">Chile relleno de picadillo y bañado en salsa de nogada. Disponible por temporada.</p>
+                    </div>
+                    <div class="flex justify-between items-center mt-4">
+                        <span class="text-2xl font-bold text-accent-green">$380 MXN</span>
+                        <button onclick="addToCart()" class="add-to-cart-btn bg-dark-primary text-white py-2 px-4 rounded-full font-semibold hover:bg-accent-green hover:text-dark-primary transition duration-300 shadow-md">
+                            Añadir
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tarjeta 6: Tacos de Temporada -->
+                <div class="card-outline bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300">
+                    <!-- Contenedor de Imagen -->
+                    <div class="h-40 rounded-md mb-4 overflow-hidden shadow-md">
+                        <img src="images/tacodelengua.jpg" 
+                             alt="Tacos de Cochinita Pibil" 
+                             class="w-full h-full object-cover rounded-md transition duration-300 hover:scale-105"
+                             onerror="this.onerror=null; this.src='https://placehold.co/600x400/9CA3AF/FFFFFF?text=Imagen+No+Disp.';">
+                    </div>
+                    <!-- Fin Contenedor de Imagen -->
+                    <div class="text-left">
+                        <h3 class="text-xl font-extrabold mb-1">Tacos de Cochinita Pibil</h3>
+                        <p class="text-sm text-gray-500 mb-4">Tres tacos con la auténtica cochinita pibil Yucateca, marinada en achiote y naranja agria.</p>
+                    </div>
+                    <div class="flex justify-between items-center mt-4">
+                        <span class="text-2xl font-bold text-accent-green">$195 MXN</span>
+                        <button onclick="addToCart()" class="add-to-cart-btn bg-dark-primary text-white py-2 px-4 rounded-full font-semibold hover:bg-accent-green hover:text-dark-primary transition duration-300 shadow-md">
+                            Añadir
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3.5. Sección de Seguimiento de Pedidos (Light BG) -->
+    <section id="seguimiento" class="py-16 sm:py-24 border-t border-b border-gray-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <!-- Bloques de título -->
+            <div class="h-1 w-1/12 bg-accent-green mx-auto rounded-full mb-2"></div>
+            <div class="h-1 w-1/12 bg-accent-green mx-auto rounded-full mb-10"></div>
+
+            <h2 class="text-3xl font-bold mb-10 text-dark-text">Seguimiento de Orden en Tiempo Real</h2>
+
+            <!-- Bloque de Seguimiento (Simulación de UI para Estado, Tiempo y Notificaciones) -->
+            <div class="max-w-3xl mx-auto p-8 rounded-xl shadow-2xlxl bg-white card-outline">
+                <h3 class="text-2xl font-bold mb-6 text-left text-dark-primary">Orden #BZ-CDMX-1045</h3>
+
+                <!-- Barra de Progreso Mejorada (4 estados) -->
+                <div class="flex justify-between items-start mb-8 relative">
+                    <!-- Línea de fondo -->
+                    <div class="absolute top-3 left-0 right-0 h-1 bg-light-bg z-0 mx-6 rounded-full"></div>
+                    <!-- Línea de progreso (simula que va en 2 de 4 estados) -->
+                    <div class="absolute top-3 left-0 h-1 bg-accent-green z-10 w-[50%] ml-6 rounded-full transition-all duration-500 ease-out"></div>
+
+                    <!-- Estado 1: Confirmado -->
+                    <div class="z-20 text-center w-1/4">
+                        <div class="w-8 h-8 rounded-full bg-accent-green mx-auto mb-1 flex items-center justify-center text-white font-bold text-sm shadow-md">✓</div>
+                        <p class="text-xs font-semibold mt-2">1. Confirmado</p>
+                    </div>
+                    <!-- Estado 2: En Preparación (Activo) -->
+                    <div class="z-20 text-center w-1/4">
+                        <div class="w-8 h-8 rounded-full bg-accent-green mx-auto mb-1 flex items-center justify-center text-white font-bold text-sm shadow-md animate-pulse">...</div>
+                        <p class="text-xs font-semibold mt-2 text-dark-text">2. Preparación</p>
+                    </div>
+                    <!-- Estado 3: Listo -->
+                    <div class="z-20 text-center w-1/4">
+                        <div class="w-8 h-8 rounded-full bg-gray-300 mx-auto mb-1 flex items-center justify-center text-gray-700">3</div>
+                        <p class="text-xs text-gray-500 mt-2">3. Listo</p>
+                    </div>
+                    <!-- Estado 4: Entregado -->
+                    <div class="z-20 text-center w-1/4">
+                        <div class="w-8 h-8 rounded-full bg-gray-300 mx-auto mb-1 flex items-center justify-center text-gray-700">4</div>
+                        <p class="text-xs text-gray-500 mt-2">4. Entregado</p>
+                    </div>
+                </div>
+
+                <!-- Detalles de tiempo y notificaciones -->
+                <div class="bg-dark-primary/5 p-4 rounded-lg text-left border border-dark-primary/10">
+                    <p class="font-extrabold text-xl text-accent-green mb-2">Estado: En Preparación</p>
+                    <p class="text-sm font-semibold mb-2 text-dark-text">Tiempo Estimado Restante: 18 minutos.</p>
+                    <p class="text-xs text-gray-500">Notificación: Se ha confirmado tu platillo principal (Pescado en Mole). El equipo está trabajando en tu orden.</p>
+                </div>
+
+            </div>
+
+            <a href="#" class="inline-block mt-8 text-dark-text hover:text-accent-green font-semibold transition duration-300">
+                Ver Detalles de la Orden Completa →
+            </a>
+
+        </div>
+    </section>
+
+
+    <!-- 4. Sección de Reservas (Simulación de Formulario) -->
+    <section id="reservas" class="py-16 sm:py-24 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="h-1 w-1/12 bg-accent-green mx-auto rounded-full mb-2"></div>
+            <h2 class="text-3xl font-bold mb-10 text-dark-text">Haz tu Reserva</h2>
+
+            <div class="p-8 rounded-xl shadow-2xl border border-light-bg">
+                <form class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+                    <input type="text" placeholder="Nombre Completo" class="p-3 border border-gray-300 rounded-lg focus:ring-accent-green focus:border-accent-green transition duration-200">
+                    <input type="email" placeholder="Correo Electrónico" class="p-3 border border-gray-300 rounded-lg focus:ring-accent-green focus:border-accent-green transition duration-200">
+                    <input type="date" placeholder="Fecha" class="p-3 border border-gray-300 rounded-lg focus:ring-accent-green focus:border-accent-green transition duration-200">
+                    <input type="time" placeholder="Hora" class="p-3 border border-gray-300 rounded-lg focus:ring-accent-green focus:border-accent-green transition duration-200">
+                    <select class="p-3 border border-gray-300 rounded-lg focus:ring-accent-green focus:border-accent-green transition duration-200">
+                        <option>2 Personas</option>
+                        <option>4 Personas</option>
+                        <option>6 Personas</option>
+                        <option>Más de 6</option>
+                    </select>
+                    <textarea placeholder="Notas o Peticiones Especiales (ej. mesa con vista)" class="md:col-span-2 p-3 border border-gray-300 rounded-lg focus:ring-accent-green focus:border-accent-green transition duration-200"></textarea>
+
+                    <button type="submit" class="md:col-span-2 bg-accent-green text-dark-primary font-bold py-3 px-8 rounded-full shadow-lg hover:shadow-xl hover:bg-dark-primary hover:text-white transition duration-300 mt-4">
+                        Confirmar Reserva
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. Sección de Ubicación/Mapa (Simulación de Mapa) -->
+    <section id="ubicacion" class="py-16 sm:py-24">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="h-1 w-1/12 bg-accent-green mx-auto rounded-full mb-2"></div>
+            <h2 class="text-3xl font-bold mb-10 text-dark-text">Encuéntranos en el Corazón de la Ciudad</h2>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Columna 1: Dirección y Horarios -->
+                <div class="text-left p-6 bg-white rounded-xl shadow-lg border border-light-bg">
+                    <h3 class="text-xl font-bold text-dark-primary mb-4">Información Esencial</h3>
+                    <p class="mb-2"><strong>Dirección:</strong> Av. 5 de Mayo, Centro Histórico de la Ciudad de México. (Frente al Zócalo).</p>
+                    <p class="mb-2"><strong>Teléfono:</strong> +52 55 5510 1010</p>
+                    <p class="mb-4"><strong>Horario:</strong> Lunes a Domingo - 08:00 a 23:00 hrs.</p>
+
+                    <button class="bg-accent-green text-dark-primary font-semibold py-2 px-4 rounded-full hover:shadow-lg transition duration-300">
+                        Ver en Google Maps
+                    </button>
+                </div>
+
+                <!-- Columna 2: Mapa Placeholder -->
+                <div class="bg-gray-400 h-64 rounded-xl shadow-lg flex items-center justify-center">
+                    <span class="text-dark-primary font-bold text-lg">Mapa Interactivo Placeholder</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6. Botón de Carrito Flotante (Simulado) -->
+    <div id="cart-button" class="floating-cart bg-accent-green p-4 rounded-full transition duration-300 hover:scale-110">
+        <div class="relative">
+            <!-- Icono de Carrito (Inline SVG) -->
+            <svg class="w-6 h-6 text-dark-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <!-- Contador de Items -->
+            <span id="cart-count" class="absolute -top-2 -right-2 bg-dark-primary text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-accent-green">
+                0
+            </span>
+        </div>
+    </div>
+
+    <!-- 7. Pie de Página / Footer (Dark Primary) -->
+    <footer class="bg-dark-primary text-white pt-12 pb-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <!-- Bloques de Redes Sociales (Iconos cuadrados) -->
+            <div class="flex justify-center space-x-4 mb-10">
+                <div class="bg-accent-green w-8 h-8 rounded-lg hover:scale-110 transition duration-300 flex items-center justify-center text-dark-primary font-bold">F</div>
+                <div class="bg-accent-green w-8 h-8 rounded-lg hover:scale-110 transition duration-300 flex items-center justify-center text-dark-primary font-bold">I</div>
+                <div class="bg-accent-green w-8 h-8 rounded-lg hover:scale-110 transition duration-300 flex items-center justify-center text-dark-primary font-bold">X</div>
+            </div>
+
+            <!-- Bloques de Enlaces (Columnas) -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center md:text-left">
+                <!-- Columna 1: Contacto -->
+                <div>
+                    <h4 class="text-lg font-semibold mb-3 border-b border-accent-green/50 pb-1">Contacto</h4>
+                    <ul class="text-sm space-y-1 text-gray-300">
+                        <li>Tel: 55 5510 1010</li>
+                        <li>Email: info@balcondelzocalo.mx</li>
+                        <li>Servicio al Cliente</li>
+                    </ul>
+                </div>
+
+                <!-- Columna 2: Horarios -->
+                <div>
+                    <h4 class="text-lg font-semibold mb-3 border-b border-accent-green/50 pb-1">Horarios</h4>
+                    <ul class="text-sm space-y-1 text-gray-300">
+                        <li>Desayuno: 8:00 - 12:00</li>
+                        <li>Comida: 13:00 - 18:00</li>
+                        <li>Cena: 18:00 - 23:00</li>
+                    </ul>
+                </div>
+
+                <!-- Columna 3: Enlaces -->
+                <div>
+                    <h4 class="text-lg font-semibold mb-3 border-b border-accent-green/50 pb-1">Enlaces</h4>
+                    <ul class="text-sm space-y-1 text-gray-300">
+                        <li><a href="#menu" class="hover:text-accent-green">Menú Digital</a></li>
+                        <li><a href="#reservas" class="hover:text-accent-green">Reservas</a></li>
+                        <li><a href="#seguimiento" class="hover:text-accent-green">Mi Pedido</a></li>
+                    </ul>
+                </div>
+
+                <!-- Columna 4: Legal -->
+                <div>
+                    <h4 class="text-lg font-semibold mb-3 border-b border-accent-green/50 pb-1">Legal</h4>
+                    <ul class="text-sm space-y-1 text-gray-300">
+                        <li>Aviso de Privacidad</li>
+                        <li>Términos y Condiciones</li>
+                        <li>Política de Cookies</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Derechos de Autor -->
+            <div class="mt-12 text-center text-sm text-gray-500 border-t border-gray-700 pt-4">
+                &copy; 2024 Balcón del Zócalo. Diseño por [Tu Nombre].
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Funcionalidad simple para el menú móvil
+        document.getElementById('mobile-menu-button').addEventListener('click', function() {
+            var menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        });
+
+        // Simulación de Carrito de Compras (sin base de datos)
+        let cartCount = 0;
+        const cartCountElement = document.getElementById('cart-count');
+        const cartButton = document.getElementById('cart-button');
+
+        function addToCart() {
+            cartCount++;
+            cartCountElement.textContent = cartCount;
+            // Efecto visual al añadir un producto
+            cartButton.classList.add('scale-125');
+            setTimeout(() => {
+                cartButton.classList.remove('scale-125');
+            }, 150);
+
+            // Simular notificación de éxito (usando console.log en lugar de alert)
+            console.log(`Producto añadido. Total en carrito: ${cartCount}`);
+        }
+
+        // Simulación de navegación al hacer clic en el carrito
+        cartButton.addEventListener('click', () => {
+            // En un sitio real, esto abriría un modal o iría a la página de checkout.
+            if (cartCount > 0) {
+                alertModal("¡Tu carrito tiene " + cartCount + " items!", "Simulación de Checkout: ¡El pedido está listo para ser revisado y enviado!");
+            } else {
+                alertModal("Carrito Vacío", "Por favor, añade algunos platillos del menú para continuar.");
+            }
+        });
+
+        // Implementación de Modal personalizado (sustituto de alert/confirm)
+        function alertModal(title, message) {
+            // Crea un modal simple en el body
+            const modalHtml = `
+                <div id="custom-modal" class="fixed inset-0 bg-dark-primary bg-opacity-75 flex items-center justify-center z-50 p-4">
+                    <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full text-center transform scale-100 transition-transform duration-300">
+                        <h3 class="text-xl font-bold mb-3 text-dark-text">${title}</h3>
+                        <p class="text-gray-600 mb-6">${message}</p>
+                        <button onclick="document.getElementById('custom-modal').remove()" class="bg-accent-green text-dark-primary font-bold py-2 px-6 rounded-full hover:bg-dark-primary hover:text-white transition duration-200">
+                            Aceptar
+                        </button>
+                    </div>
+                </div>
+            `;
+            // Si ya existe, lo remueve antes de añadir el nuevo (para evitar duplicados)
+            if (document.getElementById('custom-modal')) {
+                document.getElementById('custom-modal').remove();
+            }
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+    </script>
+</body>
+
+</html>

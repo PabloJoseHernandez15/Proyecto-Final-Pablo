@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Reportes y Métricas</title>
+    <!-- Carga de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Carga de D3.js para gráficos -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#10b981', // Emerald-500 (Verde para el éxito)
+                        'secondary': '#3b82f6', // Blue-500
+                        'background': '#1f2937', // Gray-800
+                        'card-bg': '#374151', // Gray-700
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: theme('colors.background');
+            color: white;
+        }
+        .metric-card {
+            background-color: theme('colors.card-bg');
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s;
+        }
+        .metric-card:hover {
+            transform: translateY(-2px);
+        }
+        .chart-container {
+            background-color: theme('colors.card-bg');
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            height: 450px; /* Altura fija para los gráficos */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        /* Estilos D3 para ejes y texto */
+        .chart-container .axis text {
+            fill: #9ca3af; /* Gray-400 */
+        }
+        .chart-container .axis path, .chart-container .axis line {
+            stroke: #4b5563; /* Gray-600 */
+        }
+        .loading-button {
+            transition: all 0.3s ease;
+        }
+        .loading-button.loading {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+    </style>
+    <!-- Carga de Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, collection, query, where, addDoc, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Variables globales del entorno Canvas (MANDATORIAS)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let app, db, auth;
+        let isAuthReady = false;
+        let allOrders = []; // Almacena todas las órdenes 'Entregada'
+
+        // Rutas de Firestore (datos públicos, compartidos)
+        const PUBLIC_COLLECTION_PATH = `/artifacts/${appId}/public/data/orders`;
+
+        // --- Inicialización de Firebase ---
+        async function initializeFirebase() {
+            if (!firebaseConfig) {
+                console.error("Error: Configuración de Firebase no disponible.");
+                document.getElementById('loading-message').textContent = "Error: Configuración de Firebase no disponible.";
+                return;
+            }
+
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    isAuthReady = true;
+                    document.getElementById('user-id-display').textContent = `ID App: ${appId}`;
+                    setupRealtimeListener();
+                    document.getElementById('loading-overlay').classList.add('hidden');
+                });
+
+            } catch (error) {
+                console.error("Error en la inicialización de Firebase:", error);
+                document.getElementById('loading-message').textContent = `Error de Inicialización: ${error.message}`;
+            }
+        }
+
+        // --- Lógica de Real-time y Procesamiento de Datos ---
+
+        /**
+         * Configura el listener de tiempo real de Firestore para órdenes "Entregada".
+         */
+        function setupRealtimeListener() {
+            if (!isAuthReady || !db) return;
+
+            // Filtra solo órdenes que han sido Entregadas (Ventas cerradas)
+            // Se ha quitado el 'orderBy' para evitar el error de índice.
+            const q = query(
+                collection(db, PUBLIC_COLLECTION_PATH),
+                where("status", "==", "Entregada")
+            );
+
+            onSnapshot(q, (snapshot) => {
+                allOrders = [];
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    // Normalizar la fecha y el total
+                    // Se asume que 'timestamp' es un objeto Timestamp de Firestore
+                    data.date = data.timestamp?.toDate ? data.timestamp.toDate() : new Date();
+                    data.total = typeof data.total === 'number' ? data.total : 0;
+                    // Asegurar que 'items' sea un array para evitar errores
+                    data.items = Array.isArray(data.items) ? data.items : [];
+                    allOrders.push(data);
+                });
+
+                // FIX: Ordenar en JavaScript después de la carga para asegurar el orden cronológico.
+                allOrders.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+                // Recargar el panel con los datos frescos
+                const currentFilter = document.getElementById('time-filter').value;
+                processAndRenderData(currentFilter);
+
+            }, (error) => {
+                console.error("Error al escuchar cambios en Firestore:", error);
+                showToast("Error de conexión con la base de datos.", 'error');
+            });
+        }
+
+        /**
+         * Procesa y renderiza todos los datos basándose en el filtro de tiempo.
+         * @param {string} filter - '7d', '4w', '6m'
+         */
+        function processAndRenderData(filter) {
+            let filteredOrders = [];
+            const now = new Date();
+
+            switch (filter) {
+                case '7d': // Últimos 7 días
+                    const sevenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+                    filteredOrders = allOrders.filter(o => o.date >= sevenDaysAgo);
+                    break;
+                case '4w': // Últimas 4 semanas (aprox 28 días)
+                    const fourWeeksAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 28);
+                    filteredOrders = allOrders.filter(o => o.date >= fourWeeksAgo);
+                    break;
+                case '6m': // Últimos 6 meses
+                    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+                    filteredOrders = allOrders.filter(o => o.date >= sixMonthsAgo);
+                    break;
+                default:
+                    filteredOrders = allOrders;
+            }
+            
+            // Si no hay datos filtrados, mostrar mensaje y detener
+            if (filteredOrders.length === 0) {
+                document.getElementById('report-status').textContent = "No hay ventas cerradas (Entregada) para el periodo seleccionado.";
+                clearCharts();
+                updateKPIs(0, 0, {});
+                return;
+            }
+            
+            document.getElementById('report-status').textContent = `Mostrando ${filteredOrders.length} ventas en el periodo.`;
+
+            const metrics = calculateMetrics(filteredOrders);
+            updateKPIs(metrics.totalSales, metrics.averageTicket, metrics.revenueByType);
+
+            // Renderizar gráficos
+            renderTotalSalesChart(metrics.salesByPeriod, filter);
+            renderBestSellersChart(metrics.bestSellers.slice(0, 10)); // Top 10
+            renderPeakHoursChart(metrics.salesByHour);
+        }
+        
+        /**
+         * Limpia todos los contenedores de gráficos.
+         */
+        function clearCharts() {
+            d3.select("#sales-chart").html('');
+            d3.select("#best-sellers-chart").html('');
+            d3.select("#peak-hours-chart").html('');
+        }
+
+
+        /**
+         * Calcula todas las métricas requeridas de la lista de órdenes.
+         * @param {Array} orders - Lista de órdenes filtradas.
+         */
+        function calculateMetrics(orders) {
+            const totalSales = orders.reduce((sum, order) => sum + order.total, 0);
+            const orderCount = orders.length;
+            const averageTicket = orderCount > 0 ? totalSales / orderCount : 0;
+
+            const bestSellers = {}; // { dishName: totalQuantity }
+            const salesByHour = Array(24).fill(0).map((count, hour) => ({ hour, sales: 0, count: 0 })); // { hour, sales, count }
+            const revenueByType = {}; // { orderType: totalSales }
+            const salesByPeriod = {}; // Temporal: { dateKey: totalSales }
+
+            orders.forEach(order => {
+                // 1. Platillos más vendidos (Best Sellers)
+                order.items.forEach(item => {
+                    const itemName = item.name.toLowerCase();
+                    bestSellers[itemName] = (bestSellers[itemName] || 0) + (item.qty || 1);
+                });
+
+                // 2. Horarios de mayor demanda (Peak Hours)
+                const hour = order.date.getHours();
+                salesByHour[hour].sales += order.total;
+                salesByHour[hour].count += 1;
+
+                // 3. Ingresos por tipo de pedido (Revenue by Type)
+                const type = order.orderType || 'Desconocido';
+                revenueByType[type] = (revenueByType[type] || 0) + order.total;
+                
+                // 4. Ventas por periodo (para gráfico de tendencia) - Agrupamos por Día
+                const dateKey = order.date.toISOString().split('T')[0];
+                salesByPeriod[dateKey] = (salesByPeriod[dateKey] || 0) + order.total;
+            });
+
+            // Convertir bestSellers a array y ordenar
+            const bestSellersArray = Object.keys(bestSellers).map(name => ({ name, qty: bestSellers[name] }))
+                .sort((a, b) => b.qty - a.qty);
+                
+            // Convertir salesByPeriod a array y ordenar por fecha (ascendente)
+            const salesByPeriodArray = Object.keys(salesByPeriod).map(date => ({ date: new Date(date), total: salesByPeriod[date] }))
+                .sort((a, b) => a.date - b.date);
+
+
+            return {
+                totalSales,
+                averageTicket,
+                bestSellers: bestSellersArray,
+                salesByHour,
+                revenueByType,
+                salesByPeriod: salesByPeriodArray
+            };
+        }
+
+        // --- Actualización de KPIs ---
+
+        function updateKPIs(totalSales, averageTicket, revenueByType) {
+            document.getElementById('total-sales-kpi').textContent = `$${totalSales.toFixed(2)}`;
+            document.getElementById('average-ticket-kpi').textContent = `$${averageTicket.toFixed(2)}`;
+            
+            const revenueList = document.getElementById('revenue-by-type-list');
+            revenueList.innerHTML = '';
+            
+            Object.keys(revenueByType).forEach(type => {
+                const total = revenueByType[type];
+                const li = document.createElement('li');
+                li.className = 'flex justify-between text-gray-300 border-b border-gray-600 py-1';
+                li.innerHTML = `<span class="font-medium">${type}</span><span class="font-bold text-primary">$${total.toFixed(2)}</span>`;
+                revenueList.appendChild(li);
+            });
+        }
+
+        // --- Funciones de Visualización (D3.js) ---
+
+        const MARGIN = { top: 20, right: 30, bottom: 60, left: 70 };
+
+        /**
+         * Gráfico de Ventas Totales por Periodo (Línea/Barras).
+         * @param {Array} data - [{ date: Date, total: number }]
+         * @param {string} filter - '7d', '4w', '6m'
+         */
+        function renderTotalSalesChart(data, filter) {
+            const containerId = "#sales-chart";
+            const container = d3.select(containerId);
+            container.html(''); // Limpiar el contenedor
+
+            const width = container.node().getBoundingClientRect().width - MARGIN.left - MARGIN.right;
+            const height = container.node().getBoundingClientRect().height - MARGIN.top - MARGIN.bottom;
+
+            const svg = container.append("svg")
+                .attr("width", width + MARGIN.left + MARGIN.right)
+                .attr("height", height + MARGIN.top + MARGIN.bottom)
+                .append("g")
+                .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`);
+
+            // Escalas
+            const x = d3.scaleBand()
+                .domain(data.map(d => d.date))
+                .range([0, width])
+                .padding(0.3);
+
+            const y = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.total) * 1.1])
+                .range([height, 0]);
+
+            // Ejes
+            const timeFormat = filter === '6m' ? d3.timeFormat("%b %y") : (filter === '4w' ? d3.timeFormat("%b %d") : d3.timeFormat("%a %d"));
+            
+            svg.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x)
+                    .tickFormat(timeFormat)
+                    .tickSizeOuter(0))
+                .attr('class', 'axis');
+            
+            svg.append("g")
+                .call(d3.axisLeft(y).ticks(5).tickFormat(d => `$${d}`))
+                .attr('class', 'axis');
+
+            // Barras (Total Sales)
+            svg.selectAll(".bar")
+                .data(data)
+                .enter().append("rect")
+                .attr("class", "bar")
+                .attr("x", d => x(d.date))
+                .attr("y", d => y(d.total))
+                .attr("width", x.bandwidth())
+                .attr("height", d => height - y(d.total))
+                .attr("fill", "url(#salesGradient)")
+                .transition()
+                .duration(800)
+                .attr("y", d => y(d.total))
+                .attr("height", d => height - y(d.total));
+            
+            // Gradiente para las barras
+            const defs = svg.append("defs");
+            const salesGradient = defs.append("linearGradient")
+                .attr("id", "salesGradient")
+                .attr("x1", "0%")
+                .attr("y1", "0%")
+                .attr("x2", "0%")
+                .attr("y2", "100%");
+            
+            salesGradient.append("stop")
+                .attr("offset", "0%")
+                .attr("style", `stop-color:${tailwind.config.theme.extend.colors.primary};stop-opacity:1`);
+            salesGradient.append("stop")
+                .attr("offset", "100%")
+                .attr("style", `stop-color:${tailwind.config.theme.extend.colors.primary};stop-opacity:0.3`);
+        }
+
+        /**
+         * Gráfico de Platillos Más Vendidos (Barras Horizontales).
+         * @param {Array} data - [{ name: string, qty: number }]
+         */
+        function renderBestSellersChart(data) {
+            const containerId = "#best-sellers-chart";
+            const container = d3.select(containerId);
+            container.html(''); 
+
+            const width = container.node().getBoundingClientRect().width - MARGIN.left - MARGIN.right;
+            const height = container.node().getBoundingClientRect().height - MARGIN.top - MARGIN.bottom;
+
+            const svg = container.append("svg")
+                .attr("width", width + MARGIN.left + MARGIN.right)
+                .attr("height", height + MARGIN.top + MARGIN.bottom)
+                .append("g")
+                .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`);
+
+            // Escalas
+            const x = d3.scaleLinear()
+                .domain([0, d3.max(data, d => d.qty) * 1.1])
+                .range([0, width]);
+
+            const y = d3.scaleBand()
+                .domain(data.map(d => d.name))
+                .range([height, 0])
+                .padding(0.1);
+
+            // Ejes
+            svg.append("g")
+                .call(d3.axisBottom(x).ticks(5))
+                .attr("transform", `translate(0,${height})`)
+                .attr('class', 'axis');
+            
+            svg.append("g")
+                .call(d3.axisLeft(y).tickSizeOuter(0))
+                .attr('class', 'axis');
+
+            // Barras
+            svg.selectAll(".bar")
+                .data(data)
+                .enter().append("rect")
+                .attr("x", x(0))
+                .attr("y", d => y(d.name))
+                .attr("height", y.bandwidth())
+                .attr("fill", tailwind.config.theme.extend.colors.secondary)
+                .transition()
+                .duration(800)
+                .attr("width", d => x(d.qty));
+
+            // Etiquetas de cantidad
+            svg.selectAll(".label")
+                .data(data)
+                .enter().append("text")
+                .attr("class", "label")
+                .attr("x", d => x(d.qty) + 5)
+                .attr("y", d => y(d.name) + y.bandwidth() / 2)
+                .attr("dy", ".35em")
+                .attr("fill", "white")
+                .text(d => d.qty);
+        }
+
+        /**
+         * Gráfico de Horarios de Mayor Demanda (Peak Hours).
+         * @param {Array} data - [{ hour: number, count: number }]
+         */
+        function renderPeakHoursChart(data) {
+            const containerId = "#peak-hours-chart";
+            const container = d3.select(containerId);
+            container.html('');
+
+            const width = container.node().getBoundingClientRect().width - MARGIN.left - MARGIN.right;
+            const height = container.node().getBoundingClientRect().height - MARGIN.top - MARGIN.bottom;
+
+            const svg = container.append("svg")
+                .attr("width", width + MARGIN.left + MARGIN.right)
+                .attr("height", height + MARGIN.top + MARGIN.bottom)
+                .append("g")
+                .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`);
+
+            // Usar 'count' (número de pedidos) para la altura del gráfico de demanda
+            const demandData = data.map(d => ({ hour: d.hour, count: d.count }));
+
+            // Escalas
+            const x = d3.scaleBand()
+                .domain(demandData.map(d => d.hour))
+                .range([0, width])
+                .padding(0.1);
+
+            const y = d3.scaleLinear()
+                .domain([0, d3.max(demandData, d => d.count) * 1.1])
+                .range([height, 0]);
+
+            // Ejes
+            svg.append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x).tickFormat(d => `${d}:00`))
+                .attr('class', 'axis');
+            
+            svg.append("g")
+                .call(d3.axisLeft(y).ticks(5))
+                .attr('class', 'axis');
+            
+            // Etiqueta del Eje Y
+            svg.append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("y", 0 - MARGIN.left)
+                .attr("x", 0 - (height / 2))
+                .attr("dy", "1em")
+                .style("text-anchor", "middle")
+                .attr("fill", "#d1d5db")
+                .text("Pedidos por Hora");
+
+            // Barras (Count - Demanda)
+            svg.selectAll(".bar")
+                .data(demandData)
+                .enter().append("rect")
+                .attr("class", "bar")
+                .attr("x", d => x(d.hour))
+                .attr("y", d => y(d.count))
+                .attr("width", x.bandwidth())
+                .attr("height", d => height - y(d.count))
+                .attr("fill", "url(#demandGradient)")
+                .transition()
+                .duration(800)
+                .attr("y", d => y(d.count))
+                .attr("height", d => height - y(d.count));
+            
+             // Gradiente para las barras de demanda
+            const defs = svg.append("defs");
+            const demandGradient = defs.append("linearGradient")
+                .attr("id", "demandGradient")
+                .attr("x1", "0%")
+                .attr("y1", "0%")
+                .attr("x2", "0%")
+                .attr("y2", "100%");
+            
+            demandGradient.append("stop")
+                .attr("offset", "0%")
+                .attr("style", `stop-color:${tailwind.config.theme.extend.colors.secondary};stop-opacity:1`);
+            demandGradient.append("stop")
+                .attr("offset", "100%")
+                .attr("style", `stop-color:${tailwind.config.theme.extend.colors.secondary};stop-opacity:0.3`);
+        }
+
+
+        // --- Generación de Datos de Simulación (Seeding) ---
+
+        const DISHES = [
+            { name: "Tacos al Pastor", price: 3.50, highDemand: true },
+            { name: "Enchiladas Suizas", price: 12.00, highDemand: true },
+            { name: "Mole Poblano", price: 15.00, highDemand: false },
+            { name: "Sopa Azteca", price: 7.00, highDemand: false },
+            { name: "Flan Casero", price: 5.00, highDemand: false },
+            { name: "Agua de Jamaica", price: 3.00, highDemand: false },
+        ];
+        const ORDER_TYPES = ["Mesa", "Llevar", "Domicilio", "App"];
+
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function getRandomFloat(min, max) {
+            return parseFloat((Math.random() * (max - min) + min).toFixed(2));
+        }
+
+        function createRandomOrder(date) {
+            let total = 0;
+            const items = [];
+            const numItems = getRandomInt(1, 4);
+
+            for (let i = 0; i < numItems; i++) {
+                // Bias hacia platillos de alta demanda
+                const dishIndex = Math.random() < 0.6 ? 
+                    getRandomInt(0, 1) : // Tacos/Enchiladas
+                    getRandomInt(0, DISHES.length - 1);
+                
+                const dish = DISHES[dishIndex];
+                const qty = getRandomInt(1, 3);
+                const subtotal = dish.price * qty;
+                total += subtotal;
+
+                items.push({ name: dish.name, price: dish.price, qty: qty });
+            }
+            
+            // Simular propina/impuestos
+            total += getRandomFloat(0, 3); 
+            total = parseFloat(total.toFixed(2));
+            
+            const orderType = ORDER_TYPES[getRandomInt(0, ORDER_TYPES.length - 1)];
+
+            return {
+                timestamp: Timestamp.fromDate(date),
+                status: "Entregada", // Solo contamos órdenes cerradas
+                total: total,
+                items: items,
+                orderType: orderType,
+            };
+        }
+
+        /**
+         * Genera y guarda órdenes de simulación para los últimos 60 días.
+         */
+        async function seedDatabase() {
+            if (!isAuthReady || !db) {
+                showToast("Base de datos no lista. Intenta de nuevo.", 'error');
+                return;
+            }
+
+            const button = document.getElementById('seed-button');
+            button.classList.add('loading');
+            button.innerHTML = '<svg class="animate-spin h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Cargando...';
+
+
+            const ordersToSeed = [];
+            const endDate = new Date();
+            let addedCount = 0;
+            const BATCH_SIZE = 50; // Para no saturar el servidor
+
+            for (let i = 0; i < 60; i++) { // Últimos 60 días
+                const day = new Date(endDate);
+                day.setDate(endDate.getDate() - i);
+                
+                // Simular más pedidos en horas pico (13-15h (Comida) y 19-21h (Cena))
+                const numOrdersDay = getRandomInt(10, 25); 
+
+                for (let j = 0; j < numOrdersDay; j++) {
+                    let orderHour;
+                    const isPeak = Math.random() < 0.7; // 70% chance de ser hora pico
+
+                    if (isPeak) {
+                        // Horas pico (13, 14, 15, 19, 20, 21)
+                        const peakHours = [13, 14, 15, 19, 20, 21];
+                        orderHour = peakHours[getRandomInt(0, peakHours.length - 1)];
+                    } else {
+                        // Horas normales (9:00 a 22:00)
+                        orderHour = getRandomInt(9, 22);
+                    }
+
+                    const orderDate = new Date(day.getFullYear(), day.getMonth(), day.getDate(), orderHour, getRandomInt(0, 59), getRandomInt(0, 59));
+                    ordersToSeed.push(createRandomOrder(orderDate));
+                }
+            }
+
+            try {
+                // Guardar los datos en lotes
+                for (let i = 0; i < ordersToSeed.length; i += BATCH_SIZE) {
+                    const batch = ordersToSeed.slice(i, i + BATCH_SIZE);
+                    const promises = batch.map(order => addDoc(collection(db, PUBLIC_COLLECTION_PATH), order));
+                    await Promise.all(promises);
+                    addedCount += batch.length;
+                }
+                
+                showToast(`Éxito: Se generaron ${addedCount} órdenes de simulación para 60 días.`, 'success');
+            } catch (error) {
+                console.error("Error al generar datos de simulación:", error);
+                showToast(`Error al generar datos: ${error.message}`, 'error');
+            } finally {
+                button.classList.remove('loading');
+                button.textContent = 'Cargar Datos de Simulación (60 días)';
+                // La función setupRealtimeListener se encargará de recargar el dashboard automáticamente.
+            }
+        }
+
+
+        // --- Event Handlers y Utilidades ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeFirebase();
+            
+            // Asignar el handler al cambio de filtro
+            const filterSelect = document.getElementById('time-filter');
+            filterSelect.addEventListener('change', (e) => {
+                processAndRenderData(e.target.value);
+            });
+            
+            // Asignar el handler al botón de simulación
+            document.getElementById('seed-button').addEventListener('click', seedDatabase);
+        });
+
+        // Placeholder para showToast (del panel de cocina, usado para errores)
+        function showToast(message, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'fixed bottom-4 right-4 p-4 rounded-xl shadow-2xl z-50 transition-transform duration-300 transform translate-x-full';
+
+            let bgColor;
+            switch (type) {
+                case 'success': bgColor = 'bg-primary'; break;
+                case 'error': bgColor = 'bg-red-600'; break;
+                case 'info': bgColor = 'bg-blue-500'; break;
+                default: bgColor = 'bg-gray-700';
+            }
+            toast.classList.add(bgColor, 'text-white');
+            toast.classList.remove('translate-x-full');
+
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+            }, 5000);
+        }
+    </script>
+</head>
+<body>
+
+    <!-- Overlay de Carga Inicial -->
+    <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center z-[100]">
+        <div class="text-white text-center p-8 rounded-lg">
+            <svg class="animate-spin h-10 w-10 text-primary mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p id="loading-message" class="text-xl font-semibold text-primary">Cargando Panel de Reportes...</p>
+        </div>
+    </div>
+
+    <!-- Encabezado -->
+    <header class="bg-gray-900 shadow-xl p-4 flex justify-between items-center sticky top-0 z-20">
+        <h1 class="text-3xl font-bold text-primary">📊 Dashboard de Analítica de Ventas</h1>
+        <div class="flex items-center space-x-4">
+            <button id="seed-button" class="loading-button flex items-center justify-center px-4 py-2 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-xl shadow-lg transition duration-200 text-sm">
+                Cargar Datos de Simulación (60 días)
+            </button>
+            <select id="time-filter" class="p-2 rounded-lg bg-card-bg text-white border border-gray-600 focus:ring-primary focus:border-primary">
+                <option value="7d">Últimos 7 Días</option>
+                <option value="4w" selected>Últimas 4 Semanas</option>
+                <option value="6m">Últimos 6 Meses</option>
+            </select>
+            <p id="user-id-display" class="text-sm text-gray-400 truncate"></p>
+        </div>
+    </header>
+
+    <!-- Contenedor Principal del Dashboard -->
+    <main class="p-6 space-y-8">
+        <p id="report-status" class="text-center text-gray-400 font-semibold"></p>
+
+        <!-- Sección de Métricas Clave (KPIs) -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            
+            <!-- KPI: Ingresos Totales -->
+            <div class="metric-card bg-primary/20 border-l-4 border-primary">
+                <p class="text-lg font-semibold text-gray-300">Ingresos Totales</p>
+                <p id="total-sales-kpi" class="text-4xl font-extrabold text-primary mt-1">$0.00</p>
+                <p class="text-sm text-gray-400">Total de ventas cerradas.</p>
+            </div>
+            
+            <!-- KPI: Ticket Promedio -->
+            <div class="metric-card bg-secondary/20 border-l-4 border-secondary">
+                <p class="text-lg font-semibold text-gray-300">Ticket Promedio</p>
+                <p id="average-ticket-kpi" class="text-4xl font-extrabold text-secondary mt-1">$0.00</p>
+                <p class="text-sm text-gray-400">Promedio por cada orden.</p>
+            </div>
+            
+            <!-- KPI: Ingresos por Tipo de Pedido (Lista) -->
+            <div class="metric-card col-span-2">
+                <p class="text-lg font-semibold text-white mb-2">Ingresos por Tipo de Pedido</p>
+                <ul id="revenue-by-type-list" class="space-y-1">
+                    <li class="text-gray-500">Sin datos de tipos de pedido.</li>
+                </ul>
+                <p class="text-sm text-gray-400 mt-2">Permite ajustar logística y promociones.</p>
+            </div>
+        </div>
+
+        <!-- Sección de Gráficos de Tendencia y Comportamiento -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Gráfico 1: Ventas Totales por Periodo -->
+            <div class="lg:col-span-2 chart-container">
+                <h2 class="text-xl font-bold text-white mb-4">Ventas Totales (Tendencia)</h2>
+                <div id="sales-chart" class="w-full h-[350px]">
+                    <svg></svg>
+                </div>
+            </div>
+            
+            <!-- Gráfico 2: Platillos Más Vendidos -->
+            <div class="chart-container">
+                <h2 class="text-xl font-bold text-white mb-4">Top 10 Platillos Más Vendidos (Cantidad)</h2>
+                <div id="best-sellers-chart" class="w-full h-[350px]">
+                    <svg></svg>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sección de Horarios de Demanda -->
+        <div class="grid grid-cols-1">
+            <div class="chart-container">
+                <h2 class="text-xl font-bold text-white mb-4">Horarios de Mayor Demanda (Pedidos por Hora)</h2>
+                <div id="peak-hours-chart" class="w-full h-[350px]">
+                    <svg></svg>
+                </div>
+                <p class="text-sm text-gray-400 mt-4">Recomendación: Usar estos datos para optimizar horarios de personal.</p>
+            </div>
+        </div>
+        
+        <!-- Herramientas Estratégicas (Texto de recomendación) -->
+        <div class="metric-card border-l-4 border-yellow-500 p-4">
+            <h3 class="text-xl font-semibold text-yellow-400 mb-2">Herramientas para Decisiones Estratégicas</h3>
+            <ul class="list-disc list-inside space-y-2 text-gray-300 ml-4">
+                <li>**Ajuste de Horarios:** Si el gráfico de Horarios de Demanda muestra picos entre las 19:00 y 21:00, considera aumentar el personal de cocina y meseros en ese rango.</li>
+                <li>**Rediseño de Menú:** Los Platillos Más Vendidos deben tener prioridad en inventario. Si un platillo de bajo margen está en el Top 3, evalúa si necesitas subir su precio o buscar alternativas de ingredientes.</li>
+                <li>**Promociones:** Utiliza los datos de "Ingresos por Tipo de Pedido". Si el *Takeout* es bajo, podrías crear promociones exclusivas para ese segmento en horarios valle.</li>
+            </ul>
+        </div>
+    </main>
+
+    <!-- Toast de Notificaciones -->
+    <div id="toast" class="fixed bottom-4 right-4 p-4 rounded-lg shadow-xl z-50 transition-transform duration-300 transform translate-x-full" role="alert">
+        Mensaje de notificación.
+    </div>
+
+</body>
+</html>

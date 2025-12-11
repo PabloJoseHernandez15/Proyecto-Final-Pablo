@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Menú Digital Dinámico</title>
+    <!-- Carga de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Carga de QRCode.js para la generación real del QR -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Fondo más suave */
+        }
+        /* Estilo para simular el interruptor de disponibilidad */
+       
+        .toggle-switch:checked + .slider::before {
+            transform: translateX(20px);
+        }
+        .slider {
+            transition: all 0.2s ease-in-out;
+        }
+        /* Estilo para el mensaje temporal */
+        #tempMessage {
+            top: 1rem;
+            right: 1rem;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            transform: translateX(100%);
+            z-index: 60;
+        }
+        #tempMessage.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 sm:p-8">
+
+    <div id="app-container" class="max-w-6xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden transform hover:shadow-3xl transition duration-300">
+        
+        <!-- CABECERA Y NAVEGACIÓN PRINCIPAL (Diseño más creativo) -->
+        <header class="p-6 sm:p-8 bg-gradient-to-r from-indigo-700 to-emerald-600 text-white shadow-xl">
+            <h1 class="text-3xl sm:text-4xl font-extrabold flex items-center">
+                <svg class="w-8 h-8 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-9-4h18m-7-4v8"></path></svg>
+                Menú Digital Dinámico
+            </h1>
+            <p class="text-indigo-100 text-sm mt-2">Panel de Control: Sabor y Disponibilidad en un solo lugar.</p>
+        </header>
+
+        <!-- LAYOUT PRINCIPAL (TABLERO + FORMULARIO) -->
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8 p-4 sm:p-8">
+
+            <!-- COLUMNA PRINCIPAL: LISTA DE PLATILLOS (2/3) -->
+            <section class="lg:col-span-2 space-y-8">
+                
+                <!-- ACCIONES RÁPIDAS Y FILTROS -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-indigo-50 rounded-xl shadow-lg border-l-4 border-indigo-500">
+                    <h2 class="text-xl font-bold text-indigo-800 mb-4 sm:mb-0">Gestión de Platillos</h2>
+                    <button onclick="resetForm(); showSection('dishFormSection');" 
+                            class="flex items-center px-6 py-2 bg-emerald-600 text-white font-bold rounded-full shadow-lg hover:bg-emerald-700 transition duration-300 transform hover:scale-105">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                        Añadir Platillo
+                    </button>
+                </div>
+
+                <!-- LISTA DE PLATILLOS (CONTENEDOR DE LA TABLA) -->
+                <div id="menuListContainer" class="bg-white p-6 rounded-xl shadow-xl overflow-x-auto border border-gray-100">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-4 border-b pb-2">Lista Completa de Productos</h3>
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
+                                <th class="py-3 px-2">#</th>
+                                <th class="py-3 px-2">Platillo</th>
+                                <th class="py-3 px-2">Categoría</th>
+                                <th class="py-3 px-2">Precio</th>
+                                <th class="py-3 px-2 text-center">Disponible</th>
+                                <th class="py-3 px-2 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="menuTableBody" class="bg-white divide-y divide-gray-100">
+                            <!-- Los platillos se insertarán aquí con JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- COLUMNA LATERAL: FORMULARIO Y QR (1/3) -->
+            <aside class="lg:col-span-1 space-y-8">
+
+                <!-- SECCIÓN DE CREACIÓN/EDICIÓN DE PLATILLO (dishFormSection) -->
+                <div id="dishFormSection" class="bg-white p-6 rounded-xl shadow-2xl transition-all duration-300 border-t-4 border-indigo-500">
+                    <h2 id="formTitle" class="text-2xl font-bold text-indigo-700 mb-6 border-b pb-2">Añadir Nuevo Platillo</h2>
+                    <form id="dishForm" onsubmit="handleDishSubmit(event)">
+                        <input type="hidden" id="dishId">
+                        
+                        <!-- Nombre del Platillo -->
+                        <div class="mb-4">
+                            <label for="dishName" class="block text-sm font-medium text-gray-700">Nombre</label>
+                            <input type="text" id="dishName" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 transition duration-150">
+                        </div>
+
+                        <!-- Categoría -->
+                        <div class="mb-4">
+                            <label for="dishCategory" class="block text-sm font-medium text-gray-700">Categoría</label>
+                            <select id="dishCategory" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 transition duration-150">
+                                <option value="">Seleccione Categoría</option>
+                                <option value="Principales">Platos Principales</option>
+                                <option value="Entradas">Entradas</option>
+                                <option value="Postres">Postres</option>
+                                <option value="Bebidas">Bebidas</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Precio -->
+                        <div class="mb-4">
+                            <label for="dishPrice" class="block text-sm font-medium text-gray-700">Precio ($)</label>
+                            <input type="number" step="0.01" id="dishPrice" required class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 transition duration-150">
+                        </div>
+                        
+                        <!-- Descripción -->
+                        <div class="mb-4">
+                            <label for="dishDescription" class="block text-sm font-medium text-gray-700">Descripción</label>
+                            <textarea id="dishDescription" rows="3" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 transition duration-150"></textarea>
+                        </div>
+
+                        <!-- Variantes (Simulación de entrada de texto) -->
+                        <div class="mb-4">
+                            <label for="dishVariants" class="block text-sm font-medium text-gray-700">Variantes/Opciones (e.g., Pequeño, Grande)</label>
+                            <input type="text" id="dishVariants" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 transition duration-150" placeholder="Separar por comas">
+                        </div>
+
+                        <!-- Botones de Acción -->
+                        <div class="flex justify-end space-x-3 mt-6 pt-4 border-t">
+                            <button type="button" onclick="resetForm(); showSection('menuListContainer');" 
+                                    class="px-4 py-2 text-sm font-medium text-gray-600 rounded-full hover:bg-gray-100 transition duration-150">
+                                Cancelar
+                            </button>
+                            <button type="submit" id="submitButton"
+                                    class="px-6 py-2 text-sm font-bold text-white bg-indigo-600 rounded-full shadow-lg hover:bg-indigo-700 transition duration-300 transform hover:translate-y-[-1px]">
+                                Guardar Platillo
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- SECCIÓN DE PROMOCIONES Y CÓDIGO QR -->
+                <div class="space-y-6">
+                    <!-- Configuración de Promociones -->
+                    <div class="bg-white p-6 rounded-xl shadow-2xl border-l-4 border-yellow-500">
+                        <h3 class="text-xl font-bold text-gray-700 mb-4 flex items-center">
+                            <svg class="w-6 h-6 mr-2 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Gestión de Promociones
+                        </h3>
+                        <p class="text-sm text-gray-500 mb-4">Define ofertas temporales o combos para el menú.</p>
+                        <button class="w-full py-2 text-sm font-semibold text-white bg-yellow-500 rounded-lg shadow-md hover:bg-yellow-600 transition duration-150" onclick="showTemporaryMessage('Funcionalidad no implementada. Simulación de creación de promoción.')">
+                            Crear Nueva Promoción
+                        </button>
+                    </div>
+
+                    <!-- Generación de Código QR (Más Realista) -->
+                    <div class="bg-white p-6 rounded-xl shadow-2xl text-center border-l-4 border-emerald-500">
+                        <h3 class="text-xl font-bold text-gray-700 mb-4 flex items-center justify-center">
+                            <svg class="w-6 h-6 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h.01M3 7h.01M3 3h.01M16 3h.01M21 3h.01M21 7h.01M16 7h.01M16 12h.01M21 12h.01M16 17h.01M21 17h.01M16 21h.01M21 21h.01M7 16h.01M7 21h.01M3 16h.01M3 21h.01M12 12h.01M12 17h.01M12 7h.01M7 12h.01M3 12h.01"></path></svg>
+                            Código QR del Menú
+                        </h3>
+                        <p class="text-sm text-gray-500 mb-4">Escanee para ver el menú en vivo.</p>
+                        
+                        <!-- Contenedor donde QRCode.js generará el SVG o Canvas -->
+                        <div id="qrCodeContainer" class="w-40 h-40 mx-auto p-4 rounded-xl bg-white border border-gray-200 shadow-inner">
+                            <!-- Aquí se inyectará el QR code real -->
+                        </div>
+
+                        <button onclick="showTemporaryMessage('Descarga simulada: El QR se descargaría como PNG o SVG.')"
+                                class="mt-6 w-full py-2 text-sm font-bold text-white bg-emerald-600 rounded-full shadow-lg hover:bg-emerald-700 transition duration-300 transform hover:translate-y-[-1px]">
+                            Descargar QR
+                        </button>
+                    </div>
+                </div>
+
+            </aside>
+        </main>
+
+        <!-- MODAL DE CONFIRMACIÓN DE ELIMINACIÓN -->
+        <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+            <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-sm transform transition-all duration-300 scale-100">
+                <h3 class="text-xl font-bold text-red-600 mb-4 flex items-center">
+                    <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    Confirmar Eliminación
+                </h3>
+                <p class="text-gray-700 mb-6">¿Estás seguro de que quieres eliminar <span id="dishNameInModal" class="font-semibold text-red-700"></span>? Esta acción no se puede deshacer.</p>
+                <div class="flex justify-end space-x-3">
+                    <button onclick="hideDeleteModal()" class="px-4 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 transition">
+                        Cancelar
+                    </button>
+                    <button id="confirmDeleteButton" onclick="confirmDelete()" class="px-6 py-2 text-sm font-bold text-white bg-red-600 rounded-full shadow-md hover:bg-red-700 transition transform hover:scale-105">
+                        Eliminar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MENSAJE TEMPORAL (Notificación tipo Toast) -->
+        <div id="tempMessage" class="fixed p-4 bg-indigo-600 text-white rounded-xl shadow-2xl max-w-xs">
+            <p id="tempMessageText" class="font-semibold"></p>
+        </div>
+
+        <!-- FOOTER -->
+        <footer class="p-4 sm:p-6 bg-gray-100 text-center text-sm text-gray-500 rounded-b-3xl">
+            © 2025 Menú Digital Manager. Vista de Administración.
+        </footer>
+
+    </div>
+
+    <script>
+        // *** SIMULACIÓN DE DATOS (NO HAY BASE DE DATOS) ***
+        let currentDishId = 4;
+        let dishToDeleteId = null;
+        let menuData = [
+            { id: 1, name: "Hamburguesa Clásica", description: "Carne de res, queso cheddar, lechuga y tomate.", price: 12.50, category: "Principales", available: true, variants: "Doble carne, Extra queso", image: 'https://placehold.co/80x80/4f46e5/ffffff?text=H' },
+            { id: 2, name: "Ensalada César", description: "Lechuga romana, crutones, queso parmesano y aderezo César.", price: 9.00, category: "Entradas", available: true, variants: "Con pollo, Sin pollo", image: 'https://placehold.co/80x80/10b981/ffffff?text=E' },
+            { id: 3, name: "Jugo de Naranja Natural", description: "Jugo de naranja recién exprimido.", price: 4.50, category: "Bebidas", available: false, variants: "Grande, Pequeño", image: 'https://placehold.co/80x80/f59e0b/ffffff?text=J' },
+        ];
+
+        // *** ELEMENTOS DEL DOM ***
+        const menuTableBody = document.getElementById('menuTableBody');
+        const dishForm = document.getElementById('dishForm');
+        const formTitle = document.getElementById('formTitle');
+        const submitButton = document.getElementById('submitButton');
+        const dishIdInput = document.getElementById('dishId');
+        const deleteModal = document.getElementById('deleteModal');
+        const dishNameInModal = document.getElementById('dishNameInModal');
+        const qrCodeContainer = document.getElementById('qrCodeContainer');
+        const menuListContainer = document.getElementById('menuListContainer'); // Referencia al contenedor de la lista
+        const tempMessage = document.getElementById('tempMessage');
+        const tempMessageText = document.getElementById('tempMessageText');
+
+        // *** FUNCIONES DE UTILIDAD ***
+
+        /**
+         * Muestra una notificación temporal (sustituto de alert).
+         * @param {string} message - Mensaje a mostrar.
+         */
+        function showTemporaryMessage(message) {
+            tempMessageText.textContent = message;
+            tempMessage.classList.add('show');
+            setTimeout(() => {
+                tempMessage.classList.remove('show');
+            }, 3000);
+        }
+
+        /**
+         * Muestra una sección específica o se desplaza a ella.
+         * En este diseño, la función se usa principalmente para desplazar (scroll) 
+         * el formulario o la lista a la vista principal.
+         * @param {string} id - ID del elemento al que desplazarse.
+         */
+        function showSection(id) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        /**
+         * Genera un código QR real usando qrcode.js
+         */
+        function generateQRCode() {
+            // Se asume una URL para el menú público (simulada)
+            const menuUrl = "https://midominio.com/menu_restaurante/qr12345";
+            
+            // Limpiar el contenedor antes de generar
+            qrCodeContainer.innerHTML = ''; 
+
+            // Crear una instancia de QRCode
+            new QRCode(qrCodeContainer, {
+                text: menuUrl,
+                width: 130,
+                height: 130,
+                colorDark : "#10B981", // Emerald oscuro
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+            console.log("Código QR generado para:", menuUrl);
+        }
+
+        /**
+         * Muestra el modal de confirmación de eliminación.
+         * @param {number} id - ID del platillo a eliminar.
+         */
+        function showDeleteModal(id) {
+            const dish = menuData.find(d => d.id === id);
+            if (!dish) return;
+            
+            dishToDeleteId = id;
+            dishNameInModal.textContent = dish.name;
+            deleteModal.style.display = 'flex';
+        }
+
+        /**
+         * Oculta el modal de confirmación de eliminación.
+         */
+        function hideDeleteModal() {
+            deleteModal.style.display = 'none';
+            dishToDeleteId = null;
+        }
+
+        /**
+         * Ejecuta la eliminación del platillo confirmado.
+         */
+        function confirmDelete() {
+            if (dishToDeleteId !== null) {
+                const id = dishToDeleteId;
+                const dish = menuData.find(d => d.id === id);
+                
+                menuData = menuData.filter(d => d.id !== id);
+                renderMenuTable();
+                resetForm(); 
+                hideDeleteModal();
+                showTemporaryMessage(`Platillo "${dish.name}" eliminado correctamente.`);
+                console.log(`Platillo ID ${id} (${dish.name}) eliminado.`);
+            }
+        }
+        
+        /**
+         * Renderiza la tabla de platillos con los datos actuales.
+         */
+        function renderMenuTable() {
+            menuTableBody.innerHTML = ''; // Limpiar la tabla
+            menuData.sort((a, b) => a.id - b.id); // Ordenar por ID para consistencia
+
+            menuData.forEach(dish => {
+                const row = document.createElement('tr');
+                row.classList.add('hover:bg-gray-50', 'transition', 'duration-100');
+                
+                // Icono de disponibilidad
+                const availabilityIcon = dish.available ? 
+                    '<svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>' : 
+                    '<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+                
+                row.innerHTML = `
+                    <td class="py-3 px-2 text-sm text-gray-500">${dish.id}</td>
+                    <td class="py-3 px-2 text-sm font-semibold text-gray-900 flex items-center">
+                        <img src="${dish.image}" alt="${dish.name.slice(0, 1)}" onerror="this.onerror=null;this.src='https://placehold.co/40x40/6366f1/ffffff?text=Dish';" class="w-10 h-10 rounded-lg mr-3 shadow-md">
+                        ${dish.name}
+                    </td>
+                    <td class="py-3 px-2 text-sm text-indigo-600">${dish.category}</td>
+                    <td class="py-3 px-2 text-sm font-bold text-gray-700">$${dish.price.toFixed(2)}</td>
+                    
+                    <!-- Columna Disponibilidad (Toggle Switch) -->
+                    <td class="py-3 px-2 text-center">
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="checkbox" ${dish.available ? 'checked' : ''} onchange="toggleAvailability(${dish.id})" class="sr-only peer toggle-switch">
+                            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all slider"></div>
+                        </label>
+                    </td>
+
+                    <!-- Columna Acciones -->
+                    <td class="py-3 px-2 text-center whitespace-nowrap">
+                        <button onclick="editDish(${dish.id})" title="Editar" class="text-indigo-600 hover:text-white hover:bg-indigo-600 font-medium text-sm mr-2 p-2 rounded-full transition transform hover:scale-110">
+                            <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        </button>
+                        <button onclick="showDeleteModal(${dish.id})" title="Eliminar" class="text-red-600 hover:text-white hover:bg-red-600 font-medium text-sm p-2 rounded-full transition transform hover:scale-110">
+                            <svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </td>
+                `;
+                menuTableBody.appendChild(row);
+            });
+        }
+
+        /**
+         * Alterna la disponibilidad de un platillo.
+         * @param {number} id - ID del platillo.
+         */
+        function toggleAvailability(id) {
+            const dish = menuData.find(d => d.id === id);
+            if (dish) {
+                dish.available = !dish.available;
+                renderMenuTable();
+                showTemporaryMessage(`${dish.name} está ahora ${dish.available ? 'Disponible' : 'No Disponible'}.`);
+                console.log(`Disponibilidad de ${dish.name} cambiada a ${dish.available}`);
+            }
+        }
+
+        /**
+         * Prepara el formulario para editar un platillo existente.
+         * @param {number} id - ID del platillo a editar.
+         */
+        function editDish(id) {
+            const dish = menuData.find(d => d.id === id);
+            if (!dish) return;
+
+            // Rellenar el formulario
+            dishIdInput.value = dish.id;
+            document.getElementById('dishName').value = dish.name;
+            document.getElementById('dishCategory').value = dish.category;
+            document.getElementById('dishPrice').value = dish.price;
+            document.getElementById('dishDescription').value = dish.description;
+            document.getElementById('dishVariants').value = dish.variants || '';
+
+            // Cambiar la UI del formulario
+            formTitle.textContent = `Editar Platillo: ${dish.name}`;
+            submitButton.textContent = 'Actualizar Platillo';
+            submitButton.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+            submitButton.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+            
+            // Desplazarse al formulario para mejor UX
+            showSection('dishFormSection');
+        }
+
+        /**
+         * Maneja el envío del formulario (Creación o Edición).
+         * @param {Event} event - Evento de envío del formulario.
+         */
+        function handleDishSubmit(event) {
+            event.preventDefault();
+
+            const id = dishIdInput.value ? parseInt(dishIdInput.value) : null;
+            const name = document.getElementById('dishName').value;
+            const category = document.getElementById('dishCategory').value;
+            const price = parseFloat(document.getElementById('dishPrice').value);
+            const description = document.getElementById('dishDescription').value;
+            const variants = document.getElementById('dishVariants').value;
+            
+            if (id) {
+                // Modo Edición
+                const dishIndex = menuData.findIndex(d => d.id === id);
+                if (dishIndex !== -1) {
+                    menuData[dishIndex] = { ...menuData[dishIndex], name, category, price, description, variants };
+                    showTemporaryMessage(`Platillo "${name}" actualizado.`);
+                    console.log(`Platillo ${name} actualizado.`);
+                }
+            } else {
+                // Modo Creación
+                const newDish = { 
+                    id: ++currentDishId, 
+                    name, 
+                    category, 
+                    price, 
+                    description, 
+                    variants,
+                    available: true, 
+                    // FIX: Error de sintaxis corregido aquí (faltaba el acento grave)
+                    image: `https://placehold.co/80x80/6366f1/ffffff?text=${name.slice(0, 1).toUpperCase()}`
+                };
+                menuData.push(newDish);
+                showTemporaryMessage(`Platillo "${name}" creado exitosamente.`);
+                console.log(`Platillo ${name} creado.`);
+            }
+
+            renderMenuTable();
+            resetForm();
+            // Después de guardar/actualizar, desplazar a la lista
+            showSection('menuListContainer');
+        }
+
+        /**
+         * Limpia el formulario y lo restablece a modo Creación.
+         */
+        function resetForm() {
+            dishForm.reset();
+            dishIdInput.value = '';
+            formTitle.textContent = 'Añadir Nuevo Platillo';
+            submitButton.textContent = 'Guardar Platillo';
+            submitButton.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+            submitButton.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+        }
+
+        // *** INICIALIZACIÓN ***
+        document.addEventListener('DOMContentLoaded', () => {
+            renderMenuTable();
+            generateQRCode(); // Generar el QR al cargar la página
+        });
+    </script>
+</body>
+</html>
